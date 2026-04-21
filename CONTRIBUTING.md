@@ -1,4 +1,4 @@
-# Contributing to Latent Model Organizer
+# Contributing to Snippet Vault
 
 We welcome contributions! Please follow these guidelines.
 
