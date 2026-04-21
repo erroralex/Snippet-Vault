@@ -6,18 +6,27 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Represents a code snippet stored in the local file system. This core entity
- * encapsulates all the metadata and content associated with a snippet, including
- * its language, tags, AI-generated summary, user-defined description, and
- * organizational properties like its containing folder, favorite status, and
- * manual sort order. Snippets are synchronized between the database and the
- * local file system by the FileWatcherService.
+ * ──────────────────────────────────────────────
+ * <h2>Snippet Model</h2>
+ * ──────────────────────────────────────────────
+ * <p><strong>Responsibility:</strong> Represents a code snippet stored in the system, encompassing its metadata, organizational properties, and actual content.</p>
+ * <p><strong>Functions:</strong></p>
+ * <ul>
+ * <li>Encapsulates the core data of a snippet, including its {@code title}, {@code language}, and textual {@code content}.</li>
+ * <li>Maintains metadata such as user-defined {@code tags}, an AI-generated {@code aiSummary}, and a detailed {@code description}.</li>
+ * <li>Tracks organizational properties including its containing {@code folderId}, {@code favorite} status, manual {@code sortOrder}, and visual {@code colorLabel}.</li>
+ * <li>Stores the synchronization link to the physical file system via the unique {@code filePath} and {@code lastModified} timestamp.</li>
+ * <li>Defines if the snippet acts as a reusable {@code template}.</li>
+ * </ul>
+ * <p><strong>Technical Role:</strong> A JPA {@code @Entity} utilizing Lombok annotations, acting as the primary persistent data model synchronized with the local file system by the {@code FileWatcherService} and managed by the {@code SnippetRepository}.</p>
+ * ──────────────────────────────────────────────
  */
 @Entity
 @Data

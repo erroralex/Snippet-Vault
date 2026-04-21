@@ -4,8 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Snippet Vault</title>
+    <!--
+    * ──────────────────────────────────────────────
+    * <h2>Splash Screen</h2>
+    * ──────────────────────────────────────────────
+    * <p><strong>Responsibility:</strong> Provides a visually engaging, standalone loading screen displayed during the initialization of the Electron application and underlying Spring Boot backend.</p>
+    * <p><strong>Functions:</strong></p>
+    * <ul>
+    * <li>Displays immediately upon application launch, providing immediate feedback to the user.</li>
+    * <li>Renders a custom, hardware-accelerated CSS loading animation.</li>
+    * <li>Utilizes inlined CSS variables and styles to ensure zero external dependencies, preventing unstyled flashes or load failures in various development/production environments.</li>
+    * <li>Enables window dragging via the `-webkit-app-region: drag` property, allowing users to move the splash screen.</li>
+    * </ul>
+    * <p><strong>Technical Role:</strong> A lightweight, self-contained HTML file loaded natively by the Electron main process (BrowserWindow) before the heavier Angular application is bootstrapped.</p>
+    * ──────────────────────────────────────────────
+    -->
     <style>
-        /* Inlined theme variables and splash screen styles for reliability */
         :root {
             --bg-app: #000000;
             --bg-app-image: radial-gradient(circle at 15% 25%, rgba(102, 252, 241, 0.08) 0%, transparent 40%), radial-gradient(circle at 85% 75%, rgba(216, 112, 255, 0.08) 0%, transparent 40%);

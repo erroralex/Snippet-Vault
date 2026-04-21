@@ -17,11 +17,20 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Exposes a comprehensive REST API for managing snippets. This controller is the
- * central hub for all snippet-related operations, providing endpoints for
- * creating, retrieving, updating, and deleting snippets. It also includes
- * functionality for searching, managing metadata like tags and descriptions,
- * handling favorites, reordering, and organizing snippets into folders.
+ * ──────────────────────────────────────────────
+ * <h2>SnippetController</h2>
+ * ──────────────────────────────────────────────
+ * <p><strong>Responsibility:</strong> Exposes a comprehensive REST API for the complete lifecycle management of code snippets.</p>
+ * <p><strong>Functions:</strong></p>
+ * <ul>
+ * <li>Provides standard CRUD endpoints for creating, retrieving, updating (content, metadata), and deleting snippets.</li>
+ * <li>Supports advanced search functionality, filtering by text content and programming language.</li>
+ * <li>Handles organizational actions such as toggling favorite status, updating tags, and managing snippet descriptions.</li>
+ * <li>Provides bulk operation endpoints for reordering snippets and moving multiple snippets between folders.</li>
+ * <li>Exposes endpoints for retrieving available snippet templates and instantiating new snippets based on those templates.</li>
+ * </ul>
+ * <p><strong>Technical Role:</strong> A central Spring {@code @RestController} mapped to {@code /api/snippets}, utilizing {@code SnippetService} and {@code SnippetRepository} to process requests and return standardized JSON responses.</p>
+ * ──────────────────────────────────────────────
  */
 @Slf4j
 @RestController

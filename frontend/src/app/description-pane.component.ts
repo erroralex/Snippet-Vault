@@ -1,20 +1,25 @@
 import {
   Component, input, inject, signal, effect, OnDestroy
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { Subject } from 'rxjs';
-import { debounceTime, takeUntil } from 'rxjs/operators';
-import { Snippet, SnippetService } from '../core/service/snippet.service';
+import {FormsModule} from '@angular/forms';
+import {Subject} from 'rxjs';
+import {debounceTime, takeUntil} from 'rxjs/operators';
+import {Snippet, SnippetService} from '../core/service/snippet.service';
 
 /**
- * Provides a dedicated textarea for viewing and editing the description or notes
- * associated with a specific snippet.
- *
- * This component handles the auto-saving of snippet descriptions as the user types,
- * utilizing a debounce mechanism to minimize API calls. It visually indicates
- * whether the current description contains unsaved changes. It also supports
- * tab-completion (inserting spaces instead of changing focus) within the textarea
- * to allow for simple formatting of the notes.
+ * ──────────────────────────────────────────────
+ * <h2>DescriptionPaneComponent</h2>
+ * ──────────────────────────────────────────────
+ * <p><strong>Responsibility:</strong> Provides an integrated, auto-saving text area for viewing and editing the description or notes associated with a specific snippet.</p>
+ * <p><strong>Functions:</strong></p>
+ * <ul>
+ * <li>Displays the current description text for the selected snippet.</li>
+ * <li>Captures user input and triggers auto-saving functionality utilizing a debounce mechanism to reduce API calls.</li>
+ * <li>Provides visual feedback to the user regarding the save state (e.g., 'unsaved', 'saved').</li>
+ * <li>Intercepts the Tab key to insert spaces instead of moving focus away from the text area, facilitating basic formatting.</li>
+ * </ul>
+ * <p><strong>Technical Role:</strong> An Angular {@code @Component} that binds directly to a provided {@code Snippet} input, manages its own local edit state using Signals, and delegates persistence to the {@code SnippetService} via RxJS streams.</p>
+ * ──────────────────────────────────────────────
  */
 @Component({
   selector: 'app-description-pane',
@@ -30,39 +35,75 @@ import { Snippet, SnippetService } from '../core/service/snippet.service';
           <span class="desc-status saved">saved</span>
         }
       </div>
-      <textarea class="desc-textarea" [placeholder]="placeholder" [value]="localValue()" (input)="onInput($event)" (keydown.Tab)="onTab($event)" spellcheck="true"></textarea>
+      <textarea class="desc-textarea" [placeholder]="placeholder" [value]="localValue()" (input)="onInput($event)"
+                (keydown.Tab)="onTab($event)" spellcheck="true"></textarea>
     </div>
   `,
   styles: [`
-    :host { display: block; flex-shrink: 0; }
+    :host {
+      display: block;
+      flex-shrink: 0;
+    }
 
     .desc-pane {
-      display: flex; flex-direction: column;
-      background: var(--bg-panel); backdrop-filter: var(--glass-blur);
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-panel);
+      backdrop-filter: var(--glass-blur);
       border-bottom: 1px solid var(--border-light);
     }
 
     .desc-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 5px 12px 4px; border-bottom: 1px solid var(--border-light);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 12px 4px;
+      border-bottom: 1px solid var(--border-light);
     }
 
     .desc-label {
-      font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em;
-      color: var(--text-muted); font-weight: 600;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      font-weight: 600;
     }
 
-    .desc-status { font-size: 10px; }
-    .desc-status.dirty { color: var(--accent-secondary); }
-    .desc-status.saved { color: var(--status-success); }
+    .desc-status {
+      font-size: 10px;
+    }
+
+    .desc-status.dirty {
+      color: var(--accent-secondary);
+    }
+
+    .desc-status.saved {
+      color: var(--status-success);
+    }
 
     .desc-textarea {
-      width: 100%; min-height: 60px; max-height: 150px; resize: vertical;
-      padding: 8px 12px; background: transparent; border: none; outline: none;
-      color: var(--text-secondary); font-size: 13px; font-family: inherit; line-height: 1.6;
+      width: 100%;
+      min-height: 60px;
+      max-height: 150px;
+      resize: vertical;
+      padding: 8px 12px;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-family: inherit;
+      line-height: 1.6;
       caret-color: var(--accent-primary);
-      &::placeholder { color: var(--text-muted); font-style: italic; }
-      &:focus { color: var(--text-primary); }
+
+      &::placeholder {
+        color: var(--text-muted);
+        font-style: italic;
+      }
+
+      &:focus {
+        color: var(--text-primary);
+      }
     }
   `]
 })

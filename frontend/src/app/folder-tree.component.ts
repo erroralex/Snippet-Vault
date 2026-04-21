@@ -1,24 +1,27 @@
-import { Component, inject, signal, output, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { FolderService } from './folder.service';
-import { SnippetService } from '../core/service/snippet.service';
-import { Folder } from './models/folder.model';
+import {Component, inject, signal, output, computed} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {FormsModule} from '@angular/forms';
+import {FolderService} from './folder.service';
+import {SnippetService} from '../core/service/snippet.service';
+import {Folder} from './models/folder.model';
 
 /**
- * Renders and manages the hierarchical folder structure in the application's sidebar.
- *
- * This component is responsible for displaying the complete folder tree, including
- * special root-level entries like "All Snippets" and the main "Snippet Vault" inbox.
- * It allows users to navigate, create, rename, and delete folders.
- *
- * Key features include:
- * - A recursive template to render nested folders.
- * - Drag-and-drop functionality for moving snippets into folders.
- * - Inline forms for creating new folders and sub-folders.
- * - A context menu for folder-specific actions (rename, change color, delete).
- * - State management for folder expansion, creation state, and drag-over effects.
- * - Computed signals to efficiently calculate snippet counts for each folder.
+ * ──────────────────────────────────────────────
+ * <h2>FolderTreeComponent</h2>
+ * ──────────────────────────────────────────────
+ * <p><strong>Responsibility:</strong> Renders and manages the hierarchical folder structure in the application's sidebar, enabling navigation and organization.</p>
+ * <p><strong>Functions:</strong></p>
+ * <ul>
+ * <li>Displays the complete folder tree using a recursive template.</li>
+ * <li>Includes special root-level navigational items like "All Snippets" and "Snippet Vault" (inbox).</li>
+ * <li>Supports drag-and-drop functionality for moving snippets between folders.</li>
+ * <li>Provides inline form controls for creating new folders and sub-folders directly within the tree.</li>
+ * <li>Implements a custom context menu for folder-specific actions including renaming, changing colors, and deletion.</li>
+ * <li>Manages local UI state for folder expansion, creation modes, drag-over effects, and renaming.</li>
+ * <li>Efficiently calculates and displays the current snippet count for each folder using computed signals.</li>
+ * </ul>
+ * <p><strong>Technical Role:</strong> An Angular {@code @Component} that acts as the primary navigational interface for the folder hierarchy, interacting heavily with {@code FolderService} and {@code SnippetService} to read state and trigger organizational changes.</p>
+ * ──────────────────────────────────────────────
  */
 @Component({
   selector: 'app-folder-tree',
@@ -115,7 +118,8 @@ import { Folder } from './models/folder.model';
         <button
           class="folder-action-btn pressable"
           (click)="startCreating(folder.id); $event.stopPropagation()"
-          title="Add sub-folder">+</button>
+          title="Add sub-folder">+
+        </button>
       </div>
 
       @if (folder.expanded) {
@@ -161,88 +165,203 @@ import { Folder } from './models/folder.model';
     }
   `,
   styles: [`
-    .folder-tree { padding: 4px 0; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
+    .folder-tree {
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border-light);
+      flex-shrink: 0;
+    }
 
     .folder-item {
-      display: flex; align-items: center; gap: 5px; padding: 5px 10px 5px 16px; cursor: pointer;
-      font-size: 12px; color: var(--text-secondary); border-left: 2px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 10px 5px 16px;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--text-secondary);
+      border-left: 2px solid transparent;
       transition: all var(--dur-fast) var(--ease-standard);
-      &:hover { background: rgba(255,255,255,0.03); color: var(--text-primary); transform: translateX(2px); .folder-action-btn { opacity: 1; } }
-      &.active { background: rgba(102,252,241,0.05); color: var(--text-primary); border-left-color: var(--folder-color, var(--accent-primary)); }
-      &.drag-over { background: rgba(102,252,241,0.05); border-left-color: var(--accent-primary); }
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text-primary);
+        transform: translateX(2px);
+
+        .folder-action-btn {
+          opacity: 1;
+        }
+      }
+
+      &.active {
+        background: rgba(102, 252, 241, 0.05);
+        color: var(--text-primary);
+        border-left-color: var(--folder-color, var(--accent-primary));
+      }
+
+      &.drag-over {
+        background: rgba(102, 252, 241, 0.05);
+        border-left-color: var(--accent-primary);
+      }
     }
 
     .expand-btn {
-      background: none; border: none; color: var(--text-muted); cursor: pointer;
-      font-size: 9px; padding: 0 2px; width: 14px; flex-shrink: 0;
-      &:hover { color: var(--accent-primary); }
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 9px;
+      padding: 0 2px;
+      width: 14px;
+      flex-shrink: 0;
+
+      &:hover {
+        color: var(--accent-primary);
+      }
     }
 
-    .folder-icon { font-size: 13px; color: var(--text-muted); flex-shrink: 0; }
-    .folder-icon-colored { font-size: 13px; flex-shrink: 0; }
+    .folder-icon {
+      font-size: 13px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
 
-    .folder-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .folder-icon-colored {
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .folder-name {
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
 
     .folder-count {
-      font-size: 10px; color: var(--text-muted); background: rgba(255,255,255,0.04);
-      padding: 0 5px; border-radius: 99px; min-width: 18px; text-align: center;
+      font-size: 10px;
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.04);
+      padding: 0 5px;
+      border-radius: 99px;
+      min-width: 18px;
+      text-align: center;
       border: 1px solid var(--border-light);
     }
 
     .folder-action-btn {
-      background: none; border: none; color: var(--text-muted); cursor: pointer;
-      font-size: 13px; padding: 0 3px; opacity: 0; transition: opacity var(--dur-fast), color var(--dur-fast);
-      &:hover { color: var(--accent-primary); }
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 0 3px;
+      opacity: 0;
+      transition: opacity var(--dur-fast), color var(--dur-fast);
+
+      &:hover {
+        color: var(--accent-primary);
+      }
     }
 
     .new-folder-btn {
-      width: 100%; padding: 5px 16px; background: none; border: none;
-      color: var(--text-muted); font-size: 11px; text-align: left; cursor: pointer;
+      width: 100%;
+      padding: 5px 16px;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      text-align: left;
+      cursor: pointer;
       transition: color var(--dur-fast);
-      &:hover { color: var(--accent-secondary); }
+
+      &:hover {
+        color: var(--accent-secondary);
+      }
     }
 
-    .create-folder-form { padding: 4px 10px; }
+    .create-folder-form {
+      padding: 4px 10px;
+    }
 
     .folder-name-input, .folder-rename-input {
-      width: 100%; background: var(--bg-input); border: 1px solid var(--accent-primary);
-      border-radius: 4px; color: var(--text-primary); padding: 3px 8px; font-size: 12px; outline: none;
-      box-shadow: var(--shadow-glow-primary); font-family: inherit;
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--accent-primary);
+      border-radius: 4px;
+      color: var(--text-primary);
+      padding: 3px 8px;
+      font-size: 12px;
+      outline: none;
+      box-shadow: var(--shadow-glow-primary);
+      font-family: inherit;
     }
 
     .folder-rename-input {
-      flex: 1; background: transparent; border: none;
-      border-bottom: 1px solid var(--accent-primary); border-radius: 0;
-      padding: 0 2px; box-shadow: none;
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--accent-primary);
+      border-radius: 0;
+      padding: 0 2px;
+      box-shadow: none;
     }
 
     .context-menu {
-      position: fixed; background: var(--bg-menu); backdrop-filter: var(--glass-blur);
-      border: 1px solid var(--border-light); border-radius: 10px; padding: 5px;
-      z-index: var(--z-context-menu); min-width: 190px; box-shadow: var(--shadow-panel);
+      position: fixed;
+      background: var(--bg-menu);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border-light);
+      border-radius: 10px;
+      padding: 5px;
+      z-index: var(--z-context-menu);
+      min-width: 190px;
+      box-shadow: var(--shadow-panel);
     }
 
     .ctx-item {
-      display: block; width: 100%; padding: 7px 10px; background: none; border: none;
-      color: var(--text-secondary); font-size: 12px; text-align: left; cursor: pointer; border-radius: 6px;
-      font-family: inherit; transition: background var(--dur-fast), color var(--dur-fast);
-      &:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
-      &.danger { color: var(--status-danger); }
-      &.danger:hover { background: rgba(255,77,77,0.08); }
+      display: block;
+      width: 100%;
+      padding: 7px 10px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 12px;
+      text-align: left;
+      cursor: pointer;
+      border-radius: 6px;
+      font-family: inherit;
+      transition: background var(--dur-fast), color var(--dur-fast);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-primary);
+      }
+
+      &.danger {
+        color: var(--status-danger);
+      }
+
+      &.danger:hover {
+        background: rgba(255, 77, 77, 0.08);
+      }
     }
 
-    .ctx-sep { height: 1px; background: var(--border-light); margin: 4px 0; }
+    .ctx-sep {
+      height: 1px;
+      background: var(--border-light);
+      margin: 4px 0;
+    }
   `]
 })
 export class FolderTreeComponent {
-  folderService  = inject(FolderService);
+  folderService = inject(FolderService);
   snippetService = inject(SnippetService);
 
-  creatingUnder  = signal<string | null | undefined>(undefined);
-  newFolderName  = '';
+  creatingUnder = signal<string | null | undefined>(undefined);
+  newFolderName = '';
   dragOverFolderId = signal<string | null>(null);
 
-  contextMenu  = signal<Folder | null>(null);
+  contextMenu = signal<Folder | null>(null);
   contextMenuX = signal(0);
   contextMenuY = signal(0);
 
@@ -263,7 +382,7 @@ export class FolderTreeComponent {
 
   toggleExpand(event: MouseEvent, folder: Folder): void {
     event.stopPropagation();
-    this.folderService.updateFolder(folder.id, { expanded: !folder.expanded }).subscribe();
+    this.folderService.updateFolder(folder.id, {expanded: !folder.expanded}).subscribe();
   }
 
   startCreating(parentId: string | null): void {
@@ -327,7 +446,10 @@ export class FolderTreeComponent {
     this.contextMenuX.set(event.clientX);
     this.contextMenuY.set(event.clientY);
     setTimeout(() => {
-      const close = () => { this.contextMenu.set(null); document.removeEventListener('click', close); };
+      const close = () => {
+        this.contextMenu.set(null);
+        document.removeEventListener('click', close);
+      };
       document.addEventListener('click', close);
     });
   }
@@ -336,7 +458,6 @@ export class FolderTreeComponent {
     this.folderRenameValue = folder.name;
     this.renamingFolderId.set(folder.id);
     this.contextMenu.set(null);
-    // Focus the input after Angular renders it
     setTimeout(() => {
       const input = document.querySelector('.folder-rename-input') as HTMLInputElement;
       input?.focus();
@@ -357,7 +478,7 @@ export class FolderTreeComponent {
     const original = this.folderService.folders().find(f => f.id === id)?.name;
 
     if (trimmed && trimmed !== original) {
-      this.folderService.updateFolder(id, { name: trimmed }).subscribe({
+      this.folderService.updateFolder(id, {name: trimmed}).subscribe({
         error: () => alert('Failed to rename folder.')
       });
     }
@@ -369,7 +490,6 @@ export class FolderTreeComponent {
     const f = this.contextMenu();
     if (!f) return;
     this.contextMenu.set(null);
-    // Create a temporary color picker and trigger it
     const input = document.createElement('input');
     input.type = 'color';
     input.value = f.color ?? '#a259ff';
@@ -378,11 +498,11 @@ export class FolderTreeComponent {
     input.style.pointerEvents = 'none';
     document.body.appendChild(input);
     input.addEventListener('change', () => {
-      this.folderService.updateFolder(f.id, { color: input.value }).subscribe();
+      this.folderService.updateFolder(f.id, {color: input.value}).subscribe();
       document.body.removeChild(input);
     });
     input.addEventListener('blur', () => {
-      if(document.body.contains(input)){
+      if (document.body.contains(input)) {
         document.body.removeChild(input);
       }
     });

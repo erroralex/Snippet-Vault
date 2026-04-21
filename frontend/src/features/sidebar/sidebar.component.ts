@@ -1,20 +1,25 @@
-import { Component, inject, signal, input, effect } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { SnippetService, Snippet } from '../../core/service/snippet.service';
-import { FormsModule } from '@angular/forms';
-import { languageColor } from '../../app/language-color';
+import {Component, inject, signal, input, effect} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {SnippetService, Snippet} from '../../core/service/snippet.service';
+import {FormsModule} from '@angular/forms';
+import {languageColor} from '../../app/language-color';
 
 /**
- * The main sidebar component responsible for navigating, filtering, and managing
- * the collection of code snippets.
- *
- * This component provides a comprehensive interface for finding and organizing snippets.
- * It includes a search bar, toggleable filters for favorites, programming languages,
- * and tags. It renders the list of snippets dynamically based on the current active
- * filters and selected folder. It supports drag-and-drop reordering of snippets within
- * the list, as well as dragging snippets into folders (handled in conjunction with the
- * folder tree). Additionally, it provides inline actions for creating, renaming,
- * deleting, and favoriting snippets directly from the list view.
+ * ──────────────────────────────────────────────
+ * <h2>SidebarComponent</h2>
+ * ──────────────────────────────────────────────
+ * <p><strong>Responsibility:</strong> The main sidebar component responsible for navigating, filtering, and managing the collection of code snippets.</p>
+ * <p><strong>Functions:</strong></p>
+ * <ul>
+ * <li>Provides a comprehensive interface for finding and organizing snippets via a search bar and toggleable filters (favorites, programming languages, tags).</li>
+ * <li>Dynamically renders the snippet list based on active filters and the currently selected folder.</li>
+ * <li>Supports drag-and-drop reordering of snippets within the list view.</li>
+ * <li>Enables dragging snippets into folders in conjunction with the folder tree.</li>
+ * <li>Provides inline actions for creating, renaming, deleting, and favoriting snippets directly from the list view.</li>
+ * <li>Manages local UI states such as dragging, renaming, deleting confirmations, and the display of the new snippet creation form.</li>
+ * </ul>
+ * <p><strong>Technical Role:</strong> An Angular {@code @Component} acting as a primary user interface for snippet management, tightly coupled with {@code SnippetService} to read application state and trigger data mutations.</p>
+ * ──────────────────────────────────────────────
  */
 @Component({
   selector: 'app-sidebar',
@@ -195,233 +200,553 @@ import { languageColor } from '../../app/language-color';
   `,
   styles: [`
     .sidebar-container {
-      height: 100%; display: flex; flex-direction: column; overflow: hidden;
-      background: var(--bg-sidebar-left); backdrop-filter: var(--glass-blur);
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: var(--bg-sidebar-left);
+      backdrop-filter: var(--glass-blur);
       color: var(--text-primary);
     }
 
-    .sidebar-search { padding: 8px 10px; border-bottom: 1px solid var(--border-light); flex-shrink: 0; }
-
-    .search-input-wrap {
-      display: flex; align-items: center; background: var(--bg-input);
-      border: 1px solid var(--border-input); border-radius: 8px; padding: 0 10px; gap: 6px;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      &:focus-within { border-color: var(--accent-primary); box-shadow: var(--shadow-glow-primary); }
+    .sidebar-search {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-light);
+      flex-shrink: 0;
     }
 
-    .search-icon { font-size: 14px; color: var(--text-muted); flex-shrink: 0; }
+    .search-input-wrap {
+      display: flex;
+      align-items: center;
+      background: var(--bg-input);
+      border: 1px solid var(--border-input);
+      border-radius: 8px;
+      padding: 0 10px;
+      gap: 6px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+
+      &:focus-within {
+        border-color: var(--accent-primary);
+        box-shadow: var(--shadow-glow-primary);
+      }
+    }
+
+    .search-icon {
+      font-size: 14px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
 
     .search-input {
-      flex: 1; background: transparent; border: none; outline: none;
-      color: var(--text-primary); font-size: 12px; padding: 7px 0; font-family: inherit;
-      &::placeholder { color: var(--text-muted); }
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-primary);
+      font-size: 12px;
+      padding: 7px 0;
+      font-family: inherit;
+
+      &::placeholder {
+        color: var(--text-muted);
+      }
     }
 
     .clear-btn {
-      background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 10px;
-      &:hover { color: var(--accent-secondary); }
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 10px;
+
+      &:hover {
+        color: var(--accent-secondary);
+      }
     }
 
     .filter-bar {
-      display: flex; align-items: center; gap: 6px; padding: 6px 10px;
-      border-bottom: 1px solid var(--border-light); flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border-light);
+      flex-shrink: 0;
     }
 
     .fav-filter {
-      background: none; border: 1px solid var(--border-input); border-radius: 6px;
-      color: var(--text-muted); cursor: pointer; width: 26px; height: 24px; font-size: 13px;
-      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-      transition: all var(--dur-fast); position: relative; z-index: 1;
+      background: none;
+      border: 1px solid var(--border-input);
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      width: 26px;
+      height: 24px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all var(--dur-fast);
+      position: relative;
+      z-index: 1;
+
       &.active {
-        color: var(--status-warning); border-color: rgba(234,179,8,0.4);
-        box-shadow: 0 0 8px rgba(234,179,8,0.2);
+        color: var(--status-warning);
+        border-color: rgba(234, 179, 8, 0.4);
+        box-shadow: 0 0 8px rgba(234, 179, 8, 0.2);
       }
-      &:hover:not(.active) { border-color: var(--accent-primary); color: var(--accent-primary); }
+
+      &:hover:not(.active) {
+        border-color: var(--accent-primary);
+        color: var(--accent-primary);
+      }
     }
 
-    .chip-scroll { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; &::-webkit-scrollbar { display: none; } }
+    .chip-scroll {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
 
     .chip {
-      font-size: 10px; padding: 2px 9px; border-radius: 99px; cursor: pointer;
-      white-space: nowrap; flex-shrink: 0;
-      background: transparent; color: var(--text-secondary); border: 1px solid var(--border-input);
-      position: relative; z-index: 1; transition: color var(--dur-fast);
+      font-size: 10px;
+      padding: 2px 9px;
+      border-radius: 99px;
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-input);
+      position: relative;
+      z-index: 1;
+      transition: color var(--dur-fast);
 
       &::before {
-        content: ''; position: absolute; inset: -1px;
-        background: var(--grad-hover); border-radius: 99px;
-        z-index: -2; opacity: 0; filter: blur(3px); transition: opacity 0.3s;
+        content: '';
+        position: absolute;
+        inset: -1px;
+        background: var(--grad-hover);
+        border-radius: 99px;
+        z-index: -2;
+        opacity: 0;
+        filter: blur(3px);
+        transition: opacity 0.3s;
       }
+
       &::after {
-        content: ''; position: absolute; inset: 0;
-        background: transparent; border-radius: 99px; z-index: -1; transition: background 0.3s;
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: transparent;
+        border-radius: 99px;
+        z-index: -1;
+        transition: background 0.3s;
       }
 
       &.active {
         color: var(--accent-primary);
-        &::before { opacity: 0.7; }
-        &::after  { background: var(--bg-btn-inner); }
+
+        &::before {
+          opacity: 0.7;
+        }
+
+        &::after {
+          background: var(--bg-btn-inner);
+        }
       }
-      &:hover:not(.active) { color: var(--text-primary); }
+
+      &:hover:not(.active) {
+        color: var(--text-primary);
+      }
     }
 
     .tag-filter-active {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 4px 10px; border-bottom: 1px solid var(--border-light);
-      font-size: 11px; color: var(--accent-secondary); flex-shrink: 0;
-      background: rgba(216,112,255,0.06);
-      button { background: none; border: none; color: var(--accent-secondary); cursor: pointer;
-        &:hover { color: var(--accent-primary); } }
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 10px;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 11px;
+      color: var(--accent-secondary);
+      flex-shrink: 0;
+      background: rgba(216, 112, 255, 0.06);
+
+      button {
+        background: none;
+        border: none;
+        color: var(--accent-secondary);
+        cursor: pointer;
+
+        &:hover {
+          color: var(--accent-primary);
+        }
+      }
     }
 
     .new-btn {
-      margin: 8px 10px 4px; padding: 7px; flex-shrink: 0;
-      border: 1px dashed var(--border-input); border-radius: 8px;
-      background: transparent; color: var(--text-muted); font-size: 12px; cursor: pointer;
-      position: relative; z-index: 1; transition: color var(--dur-fast);
+      margin: 8px 10px 4px;
+      padding: 7px;
+      flex-shrink: 0;
+      border: 1px dashed var(--border-input);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 12px;
+      cursor: pointer;
+      position: relative;
+      z-index: 1;
+      transition: color var(--dur-fast);
+
       &::before {
-        content: ''; position: absolute; inset: -1px; background: var(--grad-hover);
-        border-radius: 9px; z-index: -2; opacity: 0; filter: blur(4px); transition: opacity 0.3s;
+        content: '';
+        position: absolute;
+        inset: -1px;
+        background: var(--grad-hover);
+        border-radius: 9px;
+        z-index: -2;
+        opacity: 0;
+        filter: blur(4px);
+        transition: opacity 0.3s;
       }
+
       &::after {
-        content: ''; position: absolute; inset: 0; background: transparent;
-        border-radius: 8px; z-index: -1; transition: background 0.3s;
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: transparent;
+        border-radius: 8px;
+        z-index: -1;
+        transition: background 0.3s;
       }
-      &:hover { color: var(--accent-primary); }
-      &:hover::before { opacity: 0.5; }
-      &:hover::after  { background: var(--bg-btn-inner); }
+
+      &:hover {
+        color: var(--accent-primary);
+      }
+
+      &:hover::before {
+        opacity: 0.5;
+      }
+
+      &:hover::after {
+        background: var(--bg-btn-inner);
+      }
     }
 
-    .create-form { margin: 0 10px 8px; display: flex; flex-direction: column; gap: 6px; }
+    .create-form {
+      margin: 0 10px 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
 
     .form-input, .form-select {
-      padding: 6px 9px; background: var(--bg-input); border: 1px solid var(--border-input);
-      border-radius: 8px; color: var(--text-primary); font-size: 12px; outline: none;
-      font-family: inherit; transition: border-color 0.2s, box-shadow 0.2s;
-      &:focus { border-color: var(--accent-primary); box-shadow: var(--shadow-glow-primary); }
-      option { background: var(--bg-menu); }
+      padding: 6px 9px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-input);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-size: 12px;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
+
+      &:focus {
+        border-color: var(--accent-primary);
+        box-shadow: var(--shadow-glow-primary);
+      }
+
+      option {
+        background: var(--bg-menu);
+      }
     }
 
-    .form-actions { display: flex; gap: 6px; justify-content: flex-end; }
+    .form-actions {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+    }
 
     .form-btn {
-      padding: 5px 13px; border-radius: 8px; font-size: 12px; cursor: pointer;
-      position: relative; z-index: 1; font-weight: 600;
+      padding: 5px 13px;
+      border-radius: 8px;
+      font-size: 12px;
+      cursor: pointer;
+      position: relative;
+      z-index: 1;
+      font-weight: 600;
+
       &.primary {
-        background: transparent; border: none; color: var(--accent-primary);
+        background: transparent;
+        border: none;
+        color: var(--accent-primary);
+
         &::before {
-          content: ''; position: absolute; inset: -1px; background: var(--grad-hover);
-          border-radius: 9px; z-index: -2; filter: blur(4px); opacity: 0.7;
+          content: '';
+          position: absolute;
+          inset: -1px;
+          background: var(--grad-hover);
+          border-radius: 9px;
+          z-index: -2;
+          filter: blur(4px);
+          opacity: 0.7;
         }
+
         &::after {
-          content: ''; position: absolute; inset: 0; background: var(--bg-btn-inner);
-          border-radius: 8px; z-index: -1;
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: var(--bg-btn-inner);
+          border-radius: 8px;
+          z-index: -1;
         }
       }
+
       &.secondary {
-        background: var(--bg-input); color: var(--text-secondary);
+        background: var(--bg-input);
+        color: var(--text-secondary);
         border: 1px solid var(--border-input);
       }
     }
 
     .snippet-list {
-      list-style: none; padding: 4px 0; margin: 0; flex: 1; overflow-y: auto; overflow-x: hidden;
+      list-style: none;
+      padding: 4px 0;
+      margin: 0;
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
     }
 
     .snippet-item {
-      position: relative; display: flex; align-items: center; gap: 0;
-      padding: 8px 8px 8px 0; cursor: pointer; border-left: 2px solid transparent;
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 8px 8px 8px 0;
+      cursor: pointer;
+      border-left: 2px solid transparent;
       animation: appear var(--dur-standard) var(--ease-out-expo) both;
       transition: background var(--dur-fast), transform var(--dur-fast) var(--ease-out-expo),
-                  border-left-color var(--dur-fast);
+      border-left-color var(--dur-fast);
 
       &:hover {
-        background: rgba(255,255,255,0.03);
+        background: rgba(255, 255, 255, 0.03);
         transform: translateX(2px);
-        .item-actions { opacity: 1; }
-        .drag-handle   { opacity: 1; }
+
+        .item-actions {
+          opacity: 1;
+        }
+
+        .drag-handle {
+          opacity: 1;
+        }
       }
 
       &.active {
-        background: rgba(102,252,241,0.05);
+        background: rgba(102, 252, 241, 0.05);
         border-left-color: var(--accent-color, var(--accent-primary));
-        .item-title { color: var(--text-primary); }
+
+        .item-title {
+          color: var(--text-primary);
+        }
       }
 
       &.selected {
-        background: rgba(216,112,255,0.06);
+        background: rgba(216, 112, 255, 0.06);
         border-left-color: var(--accent-secondary);
       }
 
-      &.dragging  { opacity: 0.3; pointer-events: none; }
-      &.drag-over { border-top: 2px solid var(--accent-primary); background: rgba(102,252,241,0.04); }
+      &.dragging {
+        opacity: 0.3;
+        pointer-events: none;
+      }
+
+      &.drag-over {
+        border-top: 2px solid var(--accent-primary);
+        background: rgba(102, 252, 241, 0.04);
+      }
     }
 
     .drag-handle {
-      font-size: 14px; color: var(--text-muted); padding: 0 6px; cursor: grab;
-      opacity: 0; flex-shrink: 0; transition: opacity var(--dur-fast); user-select: none;
+      font-size: 14px;
+      color: var(--text-muted);
+      padding: 0 6px;
+      cursor: grab;
+      opacity: 0;
+      flex-shrink: 0;
+      transition: opacity var(--dur-fast);
+      user-select: none;
     }
 
-    .item-content { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .item-content {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
 
     .item-title {
-      font-size: 13px; font-weight: 500; color: var(--text-secondary);
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color var(--dur-fast);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: color var(--dur-fast);
     }
 
-    .item-meta { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .item-meta {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
 
-    .item-lang { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+    .item-lang {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+    }
 
     .item-tag {
-      font-size: 10px; padding: 1px 6px; border-radius: 99px; cursor: pointer;
-      background: rgba(216,112,255,0.08); color: var(--accent-secondary);
-      border: 1px solid rgba(216,112,255,0.2); transition: all var(--dur-fast);
-      &:hover { background: rgba(216,112,255,0.15); border-color: var(--accent-secondary); }
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 99px;
+      cursor: pointer;
+      background: rgba(216, 112, 255, 0.08);
+      color: var(--accent-secondary);
+      border: 1px solid rgba(216, 112, 255, 0.2);
+      transition: all var(--dur-fast);
+
+      &:hover {
+        background: rgba(216, 112, 255, 0.15);
+        border-color: var(--accent-secondary);
+      }
     }
 
     .item-actions {
-      display: flex; align-items: center; gap: 2px; opacity: 0;
-      transition: opacity var(--dur-fast); flex-shrink: 0; padding-right: 6px;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      opacity: 0;
+      transition: opacity var(--dur-fast);
+      flex-shrink: 0;
+      padding-right: 6px;
     }
 
-    .snippet-item:not(:hover) .item-actions { .action-btn.starred { opacity: 1; } }
+    .snippet-item:not(:hover) .item-actions {
+      .action-btn.starred {
+        opacity: 1;
+      }
+    }
 
     .action-btn {
-      background: none; border: none; color: var(--text-muted); cursor: pointer;
-      width: 22px; height: 22px; border-radius: 4px; font-size: 12px;
-      display: flex; align-items: center; justify-content: center; transition: all var(--dur-fast);
-      &:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
-      &.starred { color: var(--status-warning); }
-      &.danger:hover { color: var(--status-danger); background: rgba(255,77,77,0.1); }
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--dur-fast);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-primary);
+      }
+
+      &.starred {
+        color: var(--status-warning);
+      }
+
+      &.danger:hover {
+        color: var(--status-danger);
+        background: rgba(255, 77, 77, 0.1);
+      }
     }
 
     .rename-input {
-      width: 100%; background: var(--bg-input); border: 1px solid var(--accent-primary);
-      border-radius: 4px; color: var(--text-primary); padding: 2px 7px; font-size: 12px; outline: none;
-      box-shadow: var(--shadow-glow-primary); font-family: inherit;
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--accent-primary);
+      border-radius: 4px;
+      color: var(--text-primary);
+      padding: 2px 7px;
+      font-size: 12px;
+      outline: none;
+      box-shadow: var(--shadow-glow-primary);
+      font-family: inherit;
     }
 
     .delete-confirm {
-      position: absolute; bottom: -34px; left: 10px; right: 10px;
-      display: flex; align-items: center; gap: 6px; padding: 5px 9px;
-      background: var(--bg-menu); border: 1px solid rgba(255,77,77,0.3); border-radius: 8px;
-      font-size: 11px; color: var(--status-danger); z-index: 10;
+      position: absolute;
+      bottom: -34px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 9px;
+      background: var(--bg-menu);
+      border: 1px solid rgba(255, 77, 77, 0.3);
+      border-radius: 8px;
+      font-size: 11px;
+      color: var(--status-danger);
+      z-index: 10;
       box-shadow: var(--shadow-panel);
     }
 
     .confirm-btn {
-      font-size: 10px; padding: 2px 9px; border-radius: 4px; cursor: pointer; border: 1px solid;
-      &.yes { background: rgba(255,77,77,0.12); color: var(--status-danger); border-color: rgba(255,77,77,0.3); }
-      &.no  { background: var(--bg-input); color: var(--text-secondary); border-color: var(--border-input); }
+      font-size: 10px;
+      padding: 2px 9px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid;
+
+      &.yes {
+        background: rgba(255, 77, 77, 0.12);
+        color: var(--status-danger);
+        border-color: rgba(255, 77, 77, 0.3);
+      }
+
+      &.no {
+        background: var(--bg-input);
+        color: var(--text-secondary);
+        border-color: var(--border-input);
+      }
     }
 
     .empty-state {
-      padding: 24px 16px; text-align: center; color: var(--text-muted); font-size: 12px;
-      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 24px 16px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
     }
 
-    .link-btn { background: none; border: none; color: var(--accent-primary); cursor: pointer; font-size: 11px; text-decoration: underline; }
+    .link-btn {
+      background: none;
+      border: none;
+      color: var(--accent-primary);
+      cursor: pointer;
+      font-size: 11px;
+      text-decoration: underline;
+    }
   `]
 })
 export class SidebarComponent {
@@ -439,29 +764,29 @@ export class SidebarComponent {
   private isCommitting = false;
 
   availableLanguages = [
-    { label: 'Code Fragment', value: 'text' },
-    { label: 'Java Class', value: 'java' },
-    { label: 'AI Prompt', value: 'prompt' },
-    { label: 'Markdown', value: 'markdown' },
-    { label: 'TypeScript', value: 'typescript' },
-    { label: 'Python', value: 'python' },
-    { label: 'HTML', value: 'html' },
-    { label: 'CSS', value: 'css' },
-    { label: 'SCSS', value: 'scss' },
-    { label: 'JavaScript', value: 'javascript' },
-    { label: 'JSON', value: 'json' },
-    { label: 'XML', value: 'xml' },
-    { label: 'YAML', value: 'yaml' },
-    { label: 'SQL', value: 'sql' },
-    { label: 'Kotlin', value: 'kotlin' },
-    { label: 'Go', value: 'go' },
-    { label: 'Rust', value: 'rust' },
-    { label: 'C#', value: 'csharp' },
-    { label: 'PHP', value: 'php' },
-    { label: 'Ruby', value: 'ruby' },
-    { label: 'Swift', value: 'swift' },
-    { label: 'Bash', value: 'bash' },
-    { label: 'Dockerfile', value: 'dockerfile' },
+    {label: 'Code Fragment', value: 'text'},
+    {label: 'Java Class', value: 'java'},
+    {label: 'AI Prompt', value: 'prompt'},
+    {label: 'Markdown', value: 'markdown'},
+    {label: 'TypeScript', value: 'typescript'},
+    {label: 'Python', value: 'python'},
+    {label: 'HTML', value: 'html'},
+    {label: 'CSS', value: 'css'},
+    {label: 'SCSS', value: 'scss'},
+    {label: 'JavaScript', value: 'javascript'},
+    {label: 'JSON', value: 'json'},
+    {label: 'XML', value: 'xml'},
+    {label: 'YAML', value: 'yaml'},
+    {label: 'SQL', value: 'sql'},
+    {label: 'Kotlin', value: 'kotlin'},
+    {label: 'Go', value: 'go'},
+    {label: 'Rust', value: 'rust'},
+    {label: 'C#', value: 'csharp'},
+    {label: 'PHP', value: 'php'},
+    {label: 'Ruby', value: 'ruby'},
+    {label: 'Swift', value: 'swift'},
+    {label: 'Bash', value: 'bash'},
+    {label: 'Dockerfile', value: 'dockerfile'},
   ];
 
   constructor() {
@@ -480,7 +805,7 @@ export class SidebarComponent {
 
       if (lastSelected) {
         const fromIdx = list.findIndex(s => s.id === lastSelected);
-        const toIdx   = list.findIndex(s => s.id === snippet.id);
+        const toIdx = list.findIndex(s => s.id === snippet.id);
         const [start, end] = fromIdx < toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx];
         const rangeIds = list.slice(start, end + 1).map(s => s.id);
         this.snippetService.selectedIds.update(set => {
@@ -568,8 +893,8 @@ export class SidebarComponent {
     this.deletingId.set(null);
   }
 
-  draggingId  = signal<string | null>(null);
-  dragOverId  = signal<string | null>(null);
+  draggingId = signal<string | null>(null);
+  dragOverId = signal<string | null>(null);
 
   onDragStart(event: DragEvent, id: string): void {
     this.draggingId.set(id);
@@ -590,7 +915,7 @@ export class SidebarComponent {
   onDrop(event: DragEvent): void {
     event.preventDefault();
     const draggedId = this.draggingId();
-    const targetId  = this.dragOverId();
+    const targetId = this.dragOverId();
 
     if (!draggedId || !targetId || draggedId === targetId) {
       this.onDragEnd();
@@ -599,9 +924,12 @@ export class SidebarComponent {
 
     const currentOrder = this.snippetService.filteredSnippets().map(s => s.id);
     const fromIdx = currentOrder.indexOf(draggedId);
-    const toIdx   = currentOrder.indexOf(targetId);
+    const toIdx = currentOrder.indexOf(targetId);
 
-    if (fromIdx === -1 || toIdx === -1) { this.onDragEnd(); return; }
+    if (fromIdx === -1 || toIdx === -1) {
+      this.onDragEnd();
+      return;
+    }
 
     const newOrder = [...currentOrder];
     newOrder.splice(fromIdx, 1);

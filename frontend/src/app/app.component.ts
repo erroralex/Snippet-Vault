@@ -13,20 +13,21 @@ import {CommandPaletteComponent} from './command-palette.component';
 import {FolderService} from './folder.service';
 
 /**
- * The root component of the Snippet Vault application.
- *
- * This component serves as the main container for the entire user interface. It orchestrates the
- * primary layout, including the title bar, sidebar, main content area, and various functional
- * components like the Monaco editor and AI panel.
- *
- * It is responsible for:
- * - Initializing and configuring global services, such as the Monaco Editor's web workers.
- * - Managing the dynamic width of the sidebar, including user-driven resizing and persisting
- *   the width to local storage.
- * - Handling global keyboard shortcuts, such as creating a new snippet.
- * - Responding to application-wide state changes, like updating the window title when a
- *   different snippet is selected.
- * - Loading initial data, including snippets and folders, when the application starts.
+ * ──────────────────────────────────────────────
+ * <h2>AppComponent</h2>
+ * ──────────────────────────────────────────────
+ * <p><strong>Responsibility:</strong> The root component that orchestrates the primary layout and global state of the Snippet Vault application.</p>
+ * <p><strong>Functions:</strong></p>
+ * <ul>
+ * <li>Serves as the main container for the user interface, including title bar, sidebar, and editor areas.</li>
+ * <li>Initializes global services and configuration, such as the Monaco Editor's web worker paths.</li>
+ * <li>Manages the dynamic resizing of the sidebar and persists its width to local storage.</li>
+ * <li>Handles global keyboard shortcuts, like initiating the creation of a new snippet.</li>
+ * <li>Dynamically updates the application window title based on the currently selected snippet.</li>
+ * <li>Triggers the initial loading of snippets and folders upon application startup.</li>
+ * </ul>
+ * <p><strong>Technical Role:</strong> An Angular {@code @Component} that acts as the entry point for the component tree, integrating various feature modules and managing high-level application interactions and state.</p>
+ * ──────────────────────────────────────────────
  */
 @Component({
   selector: 'app-root',
@@ -62,8 +63,6 @@ export class AppComponent implements OnInit {
   readonly MAX_SIDEBAR = 400;
 
   constructor() {
-    // --- Monaco Editor Worker Configuration ---
-    // This needs to be configured globally, and app.component is a good place for it.
     if (isPlatformBrowser(this.platformId)) {
       (window as any).MonacoEnvironment = {
         getWorkerUrl: function (_moduleId: any, label: string) {
@@ -84,7 +83,6 @@ export class AppComponent implements OnInit {
       };
     }
 
-    // --- Dynamic Window Title ---
     effect(() => {
       const s = this.snippetService.selectedSnippet();
       this.titleService.setTitle(s ? `${s.title} — Snippet Vault` : 'Snippet Vault');
@@ -126,7 +124,6 @@ export class AppComponent implements OnInit {
   @HostListener('document:mouseup')
   onMouseUp(): void {
     this.isResizing.set(false);
-    // Persist sidebar width to localStorage so it survives restarts
     localStorage.setItem('sidebarWidth', String(this.sidebarWidth()));
     document.body.classList.remove('resizing');
   }

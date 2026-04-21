@@ -166,6 +166,7 @@ export class MonacoEditorComponent implements OnDestroy {
       renderLineHighlight: 'gutter',
       cursorBlinking: 'phase',
       cursorSmoothCaretAnimation: 'on',
+      mouseWheelZoom: true,
     });
 
     const contentChange$ = new Subject<void>();

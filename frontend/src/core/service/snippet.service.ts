@@ -1,9 +1,9 @@
-import { Injectable, signal, inject, PLATFORM_ID, computed } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-import { Client, IFrame, IMessage } from '@stomp/stompjs';
-import { tap } from 'rxjs/operators';
-import { Observable } from 'rxjs';
+import {Injectable, signal, inject, PLATFORM_ID, computed} from '@angular/core';
+import {isPlatformBrowser} from '@angular/common';
+import {HttpClient} from '@angular/common/http';
+import {Client, IFrame, IMessage} from '@stomp/stompjs';
+import {tap} from 'rxjs/operators';
+import {Observable} from 'rxjs';
 
 export interface Snippet {
   id: string;
@@ -23,16 +23,20 @@ export interface Snippet {
 }
 
 /**
- * The core data service for managing code snippets within the application.
- *
- * This service acts as the single source of truth for snippet data, handling all CRUD
- * operations via HTTP requests to the backend API. It utilizes Angular Signals to
- * expose reactive state to components, including the full list of snippets, the
- * currently selected snippet, and various filter criteria (search query, language,
- * tags, folder, and favorites). It provides computed signals that dynamically derive
- * the filtered list of snippets for display. Additionally, it establishes a WebSocket
- * connection (using STOMP) to receive real-time updates from the server, ensuring
- * the client-side state remains synchronized across multiple instances or users.
+ * ──────────────────────────────────────────────
+ * <h2>SnippetService</h2>
+ * ──────────────────────────────────────────────
+ * <p><strong>Responsibility:</strong> Serves as the core data layer and state manager for code snippets within the application.</p>
+ * <p><strong>Functions:</strong></p>
+ * <ul>
+ * <li>Acts as the single source of truth for snippet data, exposing state via Angular Signals.</li>
+ * <li>Manages all CRUD operations (Create, Read, Update, Delete) via HTTP requests to the backend API.</li>
+ * <li>Handles complex filtering and sorting logic (search query, language, tags, folders, favorites) through derived computed signals.</li>
+ * <li>Establishes and maintains a STOMP WebSocket connection to receive real-time updates from the server, ensuring cross-client synchronization.</li>
+ * <li>Maintains user interaction states, such as the currently selected snippet, multiple selection sets for bulk actions, and recently viewed snippets.</li>
+ * </ul>
+ * <p><strong>Technical Role:</strong> An Angular {@code @Injectable} service provided at the root level, integrating {@code HttpClient} for REST communication, {@code @stomp/stompjs} for WebSockets, and Angular Signals for reactive state management.</p>
+ * ──────────────────────────────────────────────
  */
 @Injectable({
   providedIn: 'root'
@@ -57,11 +61,11 @@ export class SnippetService {
   );
 
   filteredSnippets = computed(() => {
-    const q       = this.searchQuery().toLowerCase().trim();
-    const lang    = this.activeLanguageFilter();
-    const tag     = this.activeTagFilter();
+    const q = this.searchQuery().toLowerCase().trim();
+    const lang = this.activeLanguageFilter();
+    const tag = this.activeTagFilter();
     const favOnly = this.showFavoritesOnly();
-    const folder  = this.activeFolderId();
+    const folder = this.activeFolderId();
 
     return this.snippets()
       .filter(s => {
@@ -70,10 +74,10 @@ export class SnippetService {
         if (folder && folder !== 'root' && s.folderId !== folder) return false;
         if (favOnly && !s.favorite) return false;
         if (lang && s.language !== lang) return false;
-        if (tag  && !s.tags.includes(tag)) return false;
+        if (tag && !s.tags.includes(tag)) return false;
         if (q) {
           const haystack = [s.title, s.language, ...(s.tags ?? []),
-                            s.description ?? ''].join(' ').toLowerCase();
+            s.description ?? ''].join(' ').toLowerCase();
           if (!haystack.includes(q)) return false;
         }
         return true;
@@ -126,7 +130,7 @@ export class SnippetService {
 
   updateSnippet(id: string, content: string) {
     const url = `${this.apiUrl}/${id}`;
-    return this.http.put(url, { content }).pipe(
+    return this.http.put(url, {content}).pipe(
       tap(() => {
         console.log(`Request to save snippet ${id} sent.`);
       })
@@ -135,22 +139,22 @@ export class SnippetService {
 
   createSnippet(title: string, language: string): Observable<Snippet> {
     this.justCreated = true;
-    return this.http.post<Snippet>(this.apiUrl, { title, language }).pipe(
-        tap((saved: Snippet) => {
-          console.log(`Request to create snippet with title '${title}' sent.`);
-          this.snippets.update(list => [...list, saved]);
-        })
+    return this.http.post<Snippet>(this.apiUrl, {title, language}).pipe(
+      tap((saved: Snippet) => {
+        console.log(`Request to create snippet with title '${title}' sent.`);
+        this.snippets.update(list => [...list, saved]);
+      })
     );
   }
 
   renameSnippet(id: string, title: string): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/${id}/rename`, { title }).pipe(
+    return this.http.put<void>(`${this.apiUrl}/${id}/rename`, {title}).pipe(
       tap(() => {
         this.snippets.update(list =>
-          list.map(s => s.id === id ? { ...s, title } : s)
+          list.map(s => s.id === id ? {...s, title} : s)
         );
         const sel = this.selectedSnippet();
-        if (sel?.id === id) this.selectedSnippet.set({ ...sel, title });
+        if (sel?.id === id) this.selectedSnippet.set({...sel, title});
       })
     );
   }
@@ -165,23 +169,23 @@ export class SnippetService {
   }
 
   updateTags(id: string, tags: string[]): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/${id}/tags`, { tags }).pipe(
+    return this.http.put<void>(`${this.apiUrl}/${id}/tags`, {tags}).pipe(
       tap(() => {
         this.snippets.update(list =>
-          list.map(s => s.id === id ? { ...s, tags } : s)
+          list.map(s => s.id === id ? {...s, tags} : s)
         );
       })
     );
   }
 
   updateDescription(id: string, description: string): Observable<void> {
-    return this.http.put<void>(`${this.apiUrl}/${id}/description`, { description }).pipe(
+    return this.http.put<void>(`${this.apiUrl}/${id}/description`, {description}).pipe(
       tap(() => {
         this.snippets.update(list =>
-          list.map(s => s.id === id ? { ...s, description } : s)
+          list.map(s => s.id === id ? {...s, description} : s)
         );
         const sel = this.selectedSnippet();
-        if (sel?.id === id) this.selectedSnippet.set({ ...sel, description });
+        if (sel?.id === id) this.selectedSnippet.set({...sel, description});
       })
     );
   }
@@ -190,22 +194,22 @@ export class SnippetService {
     return this.http.patch<void>(`${this.apiUrl}/${id}/favorite`, {}).pipe(
       tap(() => {
         this.snippets.update(list =>
-          list.map(s => s.id === id ? { ...s, favorite: !s.favorite } : s)
+          list.map(s => s.id === id ? {...s, favorite: !s.favorite} : s)
         );
       })
     );
   }
 
   persistOrder(orderedIds: string[]): Observable<void> {
-    const body = orderedIds.map((id, index) => ({ id, sortOrder: index }));
+    const body = orderedIds.map((id, index) => ({id, sortOrder: index}));
     return this.http.put<void>(`${this.apiUrl}/order`, body);
   }
 
   moveSnippets(ids: string[], folderId: string | null): Observable<void> {
-    return this.http.patch<void>(`${this.apiUrl}/move`, { snippetIds: ids, folderId }).pipe(
+    return this.http.patch<void>(`${this.apiUrl}/move`, {snippetIds: ids, folderId}).pipe(
       tap(() => {
         this.snippets.update(list =>
-          list.map(s => ids.includes(s.id) ? { ...s, folderId } : s)
+          list.map(s => ids.includes(s.id) ? {...s, folderId} : s)
         );
       })
     );
@@ -250,7 +254,7 @@ export class SnippetService {
 
     this.stompClient.onStompError = (frame: IFrame) => {
       console.error('Broker reported error: ' + frame.headers['message']);
-      console.error('Additional details: '  + frame.body);
+      console.error('Additional details: ' + frame.body);
     };
 
     this.stompClient.activate();
