@@ -12,12 +12,21 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 /**
- * Provides a comprehensive set of data access methods for the Snippet entity.
- * This Spring Data JPA repository is the backbone of snippet data management,
- * offering not only standard CRUD operations but also a rich collection of custom
- * queries. These queries support key application features such as finding
- * snippets by file path, performing full-text search, filtering by language or
- * folder, and retrieving snippets based on their template status.
+ * ──────────────────────────────────────────────
+ * <h2>SnippetRepository</h2>
+ * ──────────────────────────────────────────────
+ * <p><strong>Responsibility:</strong> Provides data access methods and abstracts database interactions for the {@code Snippet} entity.</p>
+ * <p><strong>Functions:</strong></p>
+ * <ul>
+ * <li>Handles standard CRUD operations for snippets against the underlying database.</li>
+ * <li>Provides methods to find specific snippets by their corresponding file system path.</li>
+ * <li>Supports custom full-text search queries across snippet titles and content using JPQL.</li>
+ * <li>Enables filtering and retrieval of snippets by specific criteria such as language, associated folder, or template status.</li>
+ * <li>Offers sorted retrieval of all snippets based on defined order and modification date.</li>
+ * <li>Provides bulk deletion capabilities for snippets within a specific folder.</li>
+ * </ul>
+ * <p><strong>Technical Role:</strong> A Spring Data JPA {@code @Repository} interface that leverages both method naming conventions and custom {@code @Query} annotations to manage snippet persistence and retrieval.</p>
+ * ──────────────────────────────────────────────
  */
 @Repository
 public interface SnippetRepository extends JpaRepository<Snippet, UUID> {

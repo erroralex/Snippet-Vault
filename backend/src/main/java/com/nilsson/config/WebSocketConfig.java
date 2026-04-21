@@ -7,13 +7,19 @@ import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
 /**
- * Configures WebSocket support with STOMP messaging capabilities.
- * This class establishes the infrastructure for real-time, bi-directional
- * communication between the frontend client and the backend server. It sets up a
- * message broker to route messages to appropriate destinations and defines the
- * endpoint where the client can connect via STOMP. This is crucial for enabling
- * live updates in the UI when snippets are modified by external processes or
- * other clients.
+ * ──────────────────────────────────────────────
+ * <h2>WebSocketConfig</h2>
+ * ──────────────────────────────────────────────
+ * <p><strong>Responsibility:</strong> Configures WebSocket support and establishes the STOMP messaging infrastructure for real-time, bi-directional communication.</p>
+ * <p><strong>Functions:</strong></p>
+ * <ul>
+ * <li>Enables and configures a simple message broker to route messages to designated client destinations (e.g., {@code /topic}).</li>
+ * <li>Registers the primary STOMP endpoint ({@code /ws}) where frontend clients establish their initial WebSocket connection.</li>
+ * <li>Configures CORS rules specifically for the WebSocket endpoint, restricting access to trusted origins.</li>
+ * <li>Sets application destination prefixes for routing messages from the client to specific server-side handlers.</li>
+ * </ul>
+ * <p><strong>Technical Role:</strong> A Spring {@code @Configuration} class implementing {@code WebSocketMessageBrokerConfigurer}, annotated with {@code @EnableWebSocketMessageBroker} to set up the necessary beans and routing logic for real-time UI updates.</p>
+ * ──────────────────────────────────────────────
  */
 @Configuration
 @EnableWebSocketMessageBroker

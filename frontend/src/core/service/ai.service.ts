@@ -1,5 +1,5 @@
-import { Injectable } from '@angular/core';
-import { Snippet } from './snippet.service';
+import {Injectable} from '@angular/core';
+import {Snippet} from './snippet.service';
 
 export interface AiInsights {
   tags: string[];
@@ -8,24 +8,28 @@ export interface AiInsights {
 
 export type OllamaStatus = 'unknown' | 'running' | 'not_running' | 'model_missing';
 
-const OLLAMA_BASE    = 'http://localhost:11434';
-const OLLAMA_MODEL   = 'qwen2.5-coder:3b';
+const OLLAMA_BASE = 'http://localhost:11434';
+const OLLAMA_MODEL = 'qwen2.5-coder:3b';
 const REQUEST_TIMEOUT_MS = 30_000;
 
 /**
- * Handles interactions with the local Ollama AI service to generate intelligent
- * insights for code snippets.
- *
- * This service is responsible for checking the availability and status of the
- * local Ollama instance and the required language model. It constructs optimized
- * prompts based on a snippet's language, title, description, and code content,
- * specifically requesting formatted JSON output. It then sends these prompts to
- * the Ollama API, handles potential errors (like timeouts or missing models),
- * and parses the response to extract useful metadata such as automatically
- * generated tags and a concise summary. The service also includes a caching
- * mechanism to prevent redundant API calls for unchanged snippets.
+ * ──────────────────────────────────────────────
+ * <h2>AiService</h2>
+ * ──────────────────────────────────────────────
+ * <p><strong>Responsibility:</strong> Manages interactions with the local Ollama AI instance to generate intelligent insights, summaries, and tags for code snippets.</p>
+ * <p><strong>Functions:</strong></p>
+ * <ul>
+ * <li>Checks the availability and status of the local Ollama server and verifies the presence of required language models.</li>
+ * <li>Constructs optimized, context-aware prompts based on a snippet's language, title, description, and source code.</li>
+ * <li>Communicates asynchronously with the Ollama API, specifically requesting structured JSON output.</li>
+ * <li>Handles network errors, timeouts, and missing model scenarios gracefully.</li>
+ * <li>Parses and sanitizes the AI's response to extract structured metadata (tags and summaries).</li>
+ * <li>Implements an in-memory caching mechanism to prevent redundant API calls for unchanged snippet content.</li>
+ * </ul>
+ * <p><strong>Technical Role:</strong> An Angular {@code @Injectable} service providing AI integration capabilities, utilizing the native {@code fetch} API for HTTP requests and managing internal state for performance optimization via caching.</p>
+ * ──────────────────────────────────────────────
  */
-@Injectable({ providedIn: 'root' })
+@Injectable({providedIn: 'root'})
 export class AiService {
   private insightsCache = new Map<string, AiInsights>();
 
@@ -108,10 +112,10 @@ export class AiService {
     try {
       response = await fetch(`${OLLAMA_BASE}/api/generate`, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: {'content-type': 'application/json'},
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
         body: JSON.stringify({
-          model:  OLLAMA_MODEL,
+          model: OLLAMA_MODEL,
           prompt: prompt,
           stream: false,
           format: 'json',
@@ -177,7 +181,7 @@ export class AiService {
       ? parsed.summary.trim()
       : 'No summary generated.';
 
-    return { tags, summary };
+    return {tags, summary};
   }
 
   clearCache(snippetId?: string): void {

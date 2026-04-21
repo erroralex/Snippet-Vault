@@ -12,11 +12,20 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * Exposes a REST API for managing folders. This controller provides a set of
- * endpoints for performing CRUD (Create, Read, Update, Delete) operations on
- * folders, as well as reordering them. It serves as the primary interface for
- * the frontend to interact with folder-related data, enabling a structured and
- * organized view of snippets within the application.
+ * ──────────────────────────────────────────────
+ * <h2>FolderController</h2>
+ * ──────────────────────────────────────────────
+ * <p><strong>Responsibility:</strong> Exposes a REST API for managing the creation, retrieval, modification, and deletion of snippet folders.</p>
+ * <p><strong>Functions:</strong></p>
+ * <ul>
+ * <li>Provides endpoints to fetch all folders for rendering the folder tree in the UI.</li>
+ * <li>Handles requests to create new folders via HTTP POST.</li>
+ * <li>Supports updating existing folder metadata (name, color, icon, etc.) via HTTP PUT.</li>
+ * <li>Manages folder deletion via HTTP DELETE, including options to keep or delete associated snippets.</li>
+ * <li>Allows reordering of the folder hierarchy via a dedicated bulk update endpoint.</li>
+ * </ul>
+ * <p><strong>Technical Role:</strong> A Spring {@code @RestController} mapped to {@code /api/folders}, utilizing constructor injection via Lombok's {@code @RequiredArgsConstructor} to interact with the {@code FolderService} for executing business logic.</p>
+ * ──────────────────────────────────────────────
  */
 @RestController
 @RequestMapping("/api/folders")

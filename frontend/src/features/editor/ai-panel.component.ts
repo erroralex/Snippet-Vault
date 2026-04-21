@@ -1,23 +1,27 @@
 import {
   Component, inject, input, signal, effect
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { Snippet, SnippetService } from '../../core/service/snippet.service';
-import { AiService, AiInsights } from '../../core/service/ai.service';
+import {CommonModule} from '@angular/common';
+import {Snippet, SnippetService} from '../../core/service/snippet.service';
+import {AiService, AiInsights} from '../../core/service/ai.service';
 
 type PanelState = 'checking' | 'ollama_down' | 'model_missing' | 'loading' | 'ready' | 'error';
 
 /**
- * A sidebar panel that integrates with a local AI model (Ollama) to provide
- * automated insights for the currently selected code snippet.
- *
- * This component manages its own state machine to handle the various phases of
- * interacting with the local AI service. It checks if Ollama is running and
- * if the required model is available, providing helpful terminal commands to the
- * user if they are not. When ready, it streams an analysis request to the model
- * and displays the generated summary and suggested tags. It includes interactive
- * UI elements to accept or reject the suggested tags and save them back to the
- * snippet's data via the SnippetService.
+ * ──────────────────────────────────────────────
+ * <h2>AiPanelComponent</h2>
+ * ──────────────────────────────────────────────
+ * <p><strong>Responsibility:</strong> Provides a sidebar interface integrating with a local AI model (Ollama) to deliver automated insights, summaries, and tag suggestions for the currently selected code snippet.</p>
+ * <p><strong>Functions:</strong></p>
+ * <ul>
+ * <li>Manages a multi-state UI (checking, loading, ready, error, ollama_down, model_missing) to reflect the status of the local AI service.</li>
+ * <li>Verifies the availability of the Ollama server and the required language model, providing actionable terminal commands to the user if unavailable.</li>
+ * <li>Streams analysis requests to the AI service and renders the resulting JSON-formatted summary and tags.</li>
+ * <li>Provides an interactive interface allowing users to review, accept, or reject AI-suggested tags.</li>
+ * <li>Saves accepted tags back to the snippet's database record via the {@code SnippetService}.</li>
+ * </ul>
+ * <p><strong>Technical Role:</strong> An Angular {@code @Component} that acts as the presentation layer for the {@code AiService}, utilizing Signals for complex state machine management and reactive UI updates.</p>
+ * ──────────────────────────────────────────────
  */
 @Component({
   selector: 'app-ai-panel',
@@ -35,7 +39,8 @@ type PanelState = 'checking' | 'ollama_down' | 'model_missing' | 'loading' | 're
           class="refresh-btn"
           [disabled]="state() === 'loading' || state() === 'checking'"
           (click)="refresh()"
-          title="Refresh">↺</button>
+          title="Refresh">↺
+        </button>
       </div>
 
       @switch (state()) {
@@ -45,7 +50,6 @@ type PanelState = 'checking' | 'ollama_down' | 'model_missing' | 'loading' | 're
             <p class="status-msg muted">Checking Ollama…</p>
           </div>
         }
-
         @case ('ollama_down') {
           <div class="ai-body">
             <div class="ollama-status">
@@ -59,7 +63,6 @@ type PanelState = 'checking' | 'ollama_down' | 'model_missing' | 'loading' | 're
             </div>
           </div>
         }
-
         @case ('model_missing') {
           <div class="ai-body">
             <div class="ollama-status">
@@ -73,7 +76,6 @@ type PanelState = 'checking' | 'ollama_down' | 'model_missing' | 'loading' | 're
             </div>
           </div>
         }
-
         @case ('loading') {
           <div class="ai-body">
             <p class="status-msg muted" style="margin-bottom: -4px">{{ loadingMessage() }}</p>
@@ -88,14 +90,12 @@ type PanelState = 'checking' | 'ollama_down' | 'model_missing' | 'loading' | 're
             <div class="skeleton-line w70"></div>
           </div>
         }
-
         @case ('error') {
           <div class="ai-body">
             <p class="error-msg">{{ errorMessage() }}</p>
             <button class="retry-btn" (click)="refresh()">Try again</button>
           </div>
         }
-
         @case ('ready') {
           <div class="ai-body">
 
@@ -134,109 +134,275 @@ type PanelState = 'checking' | 'ollama_down' | 'model_missing' | 'loading' | 're
   `,
   styles: [`
     .ai-panel {
-      width: 200px; min-width: 200px;
+      width: 200px;
+      min-width: 200px;
       border-left: 1px solid var(--border-light);
       background: var(--bg-panel);
       backdrop-filter: var(--glass-blur);
-      display: flex; flex-direction: column; overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
     }
 
     .ai-header {
-      padding: 9px 10px; border-bottom: 1px solid var(--border-light);
-      font-size: 10px; font-weight: 700; color: var(--text-secondary);
-      display: flex; align-items: center; justify-content: space-between;
-      letter-spacing: 0.1em; text-transform: uppercase; flex-shrink: 0;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      flex-shrink: 0;
     }
 
-    .ai-header-left { display: flex; align-items: center; gap: 6px; }
+    .ai-header-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
 
     .ai-dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: #50fa7b; box-shadow: 0 0 6px rgba(80,250,123,0.6); flex-shrink: 0;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #50fa7b;
+      box-shadow: 0 0 6px rgba(80, 250, 123, 0.6);
+      flex-shrink: 0;
       transition: background 0.3s;
+
       &.loading {
         background: var(--accent-secondary);
-        box-shadow: 0 0 6px rgba(255,45,120,0.6);
+        box-shadow: 0 0 6px rgba(255, 45, 120, 0.6);
         animation: glow-pulse 1s ease-in-out infinite;
       }
     }
 
     .refresh-btn {
-      background: none; border: none; color: var(--text-muted); cursor: pointer;
-      font-size: 13px; padding: 0 2px; line-height: 1;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 0 2px;
+      line-height: 1;
       transition: color var(--dur-fast), transform var(--dur-fast);
-      &:hover:not(:disabled) { color: var(--accent-primary); transform: rotate(180deg); }
-      &:disabled { opacity: 0.2; cursor: default; }
+
+      &:hover:not(:disabled) {
+        color: var(--accent-primary);
+        transform: rotate(180deg);
+      }
+
+      &:disabled {
+        opacity: 0.2;
+        cursor: default;
+      }
     }
 
-    .ai-body { padding: 10px; display: flex; flex-direction: column; gap: 12px; }
+    .ai-body {
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
 
-    // Skeletons
-    .skeleton-label  { height: 7px; width: 36px; background: rgba(255,255,255,0.04); border-radius: 4px; }
-    .skeleton-label.mt { margin-top: 4px; }
-    .skeleton-tags   { display: flex; gap: 4px; flex-wrap: wrap; }
-    .skeleton-tag    { height: 18px; width: 46px; background: rgba(255,255,255,0.04); border-radius: 99px; animation: glow-pulse 1.8s ease-in-out infinite; }
-    .skeleton-tag.w60 { width: 60px; animation-delay: 0.2s; }
-    .skeleton-tag.w80 { width: 80px; animation-delay: 0.4s; }
-    .skeleton-line   { height: 7px; background: rgba(255,255,255,0.04); border-radius: 4px; animation: glow-pulse 1.8s ease-in-out infinite; }
-    .skeleton-line.w70 { width: 70%; animation-delay: 0.3s; }
+    .skeleton-label {
+      height: 7px;
+      width: 36px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 4px;
+    }
 
-    // States
-    .error-msg { font-size: 11px; color: var(--accent-secondary); line-height: 1.5; margin: 0; }
+    .skeleton-label.mt {
+      margin-top: 4px;
+    }
+
+    .skeleton-tags {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .skeleton-tag {
+      height: 18px;
+      width: 46px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 99px;
+      animation: glow-pulse 1.8s ease-in-out infinite;
+    }
+
+    .skeleton-tag.w60 {
+      width: 60px;
+      animation-delay: 0.2s;
+    }
+
+    .skeleton-tag.w80 {
+      width: 80px;
+      animation-delay: 0.4s;
+    }
+
+    .skeleton-line {
+      height: 7px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 4px;
+      animation: glow-pulse 1.8s ease-in-out infinite;
+    }
+
+    .skeleton-line.w70 {
+      width: 70%;
+      animation-delay: 0.3s;
+    }
+
+    .error-msg {
+      font-size: 11px;
+      color: var(--accent-secondary);
+      line-height: 1.5;
+      margin: 0;
+    }
+
     .retry-btn {
-      font-size: 11px; padding: 3px 10px;
-      border: 1px solid var(--border-light); border-radius: 5px;
-      background: transparent; color: var(--text-secondary); cursor: pointer;
-      align-self: flex-start; transition: all var(--dur-fast);
-      &:hover { border-color: var(--accent-primary); color: var(--accent-primary); box-shadow: var(--shadow-glow-primary); }
+      font-size: 11px;
+      padding: 3px 10px;
+      border: 1px solid var(--border-light);
+      border-radius: 5px;
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      align-self: flex-start;
+      transition: all var(--dur-fast);
+
+      &:hover {
+        border-color: var(--accent-primary);
+        color: var(--accent-primary);
+        box-shadow: var(--shadow-glow-primary);
+      }
     }
 
-    .ai-section { display: flex; flex-direction: column; gap: 5px; }
+    .ai-section {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
 
     .ai-label {
-      font-size: 9px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em;
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
     }
 
-    .tag-group { display: flex; flex-wrap: wrap; gap: 4px; }
+    .tag-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
 
     .tag-chip {
-      font-size: 10px; padding: 2px 7px; border-radius: 99px; cursor: pointer;
-      border: 1px dashed var(--border-light); color: var(--text-muted); background: transparent;
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 99px;
+      cursor: pointer;
+      border: 1px dashed var(--border-light);
+      color: var(--text-muted);
+      background: transparent;
       transition: all var(--dur-fast);
+
       &.accepted {
-        background: rgba(162,89,255,0.15); color: var(--accent-secondary);
-        border: 1px solid rgba(162,89,255,0.4);
-        box-shadow: 0 0 6px rgba(162,89,255,0.2);
+        background: rgba(162, 89, 255, 0.15);
+        color: var(--accent-secondary);
+        border: 1px solid rgba(162, 89, 255, 0.4);
+        box-shadow: 0 0 6px rgba(162, 89, 255, 0.2);
       }
-      &:hover { border-color: var(--accent-primary); color: var(--accent-primary); border-style: solid; }
+
+      &:hover {
+        border-color: var(--accent-primary);
+        color: var(--accent-primary);
+        border-style: solid;
+      }
     }
 
-    .no-tags { font-size: 11px; color: var(--text-muted); font-style: italic; }
+    .no-tags {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
 
     .save-tags-btn {
-      margin-top: 3px; font-size: 10px; padding: 3px 10px;
-      border: 1px solid rgba(0,229,255,0.4); border-radius: 5px;
-      background: rgba(0,229,255,0.08); color: var(--accent-primary); cursor: pointer;
+      margin-top: 3px;
+      font-size: 10px;
+      padding: 3px 10px;
+      border: 1px solid rgba(0, 229, 255, 0.4);
+      border-radius: 5px;
+      background: rgba(0, 229, 255, 0.08);
+      color: var(--accent-primary);
+      cursor: pointer;
       align-self: flex-start;
-      &:hover { background: rgba(0,229,255,0.15); box-shadow: var(--shadow-glow-primary); }
+
+      &:hover {
+        background: rgba(0, 229, 255, 0.15);
+        box-shadow: var(--shadow-glow-primary);
+      }
     }
 
     .ai-summary {
-      font-size: 11px; color: var(--text-secondary); line-height: 1.6; margin: 0;
-      padding: 6px 9px; background: rgba(0,0,0,0.6); border-radius: 5px;
+      font-size: 11px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin: 0;
+      padding: 6px 9px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 5px;
       border: 1px solid var(--border-light);
       border-left: 2px solid var(--accent-secondary);
     }
 
-    // Ollama status states
-    .ollama-status { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; }
-    .status-icon { font-size: 18px; color: var(--text-muted); &.warn { color: var(--accent-secondary); } }
-    .status-msg { font-size: 12px; color: var(--text-secondary); margin: 0; font-weight: 500; &.muted { color: var(--text-muted); font-weight: 400; } }
-    .status-hint { font-size: 11px; color: var(--text-muted); line-height: 1.7; margin: 0; }
+    .ollama-status {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .status-icon {
+      font-size: 18px;
+      color: var(--text-muted);
+
+      &.warn {
+        color: var(--accent-secondary);
+      }
+    }
+
+    .status-msg {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin: 0;
+      font-weight: 500;
+
+      &.muted {
+        color: var(--text-muted);
+        font-weight: 400;
+      }
+    }
+
+    .status-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.7;
+      margin: 0;
+    }
+
     .status-hint code {
-      display: inline-block; margin-top: 3px; padding: 2px 7px;
-      background: rgba(0,0,0,0.6); border: 1px solid var(--border-light); border-radius: 4px;
-      color: var(--accent-primary); font-family: 'Cascadia Code', 'Fira Code', monospace; font-size: 10px;
+      display: inline-block;
+      margin-top: 3px;
+      padding: 2px 7px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--border-light);
+      border-radius: 4px;
+      color: var(--accent-primary);
+      font-family: 'Cascadia Code', 'Fira Code', monospace;
+      font-size: 10px;
       user-select: text;
     }
   `]
@@ -244,11 +410,11 @@ type PanelState = 'checking' | 'ollama_down' | 'model_missing' | 'loading' | 're
 export class AiPanelComponent {
   snippet = input.required<Snippet>();
 
-  private aiService  = inject(AiService);
+  private aiService = inject(AiService);
   private snippetService = inject(SnippetService);
 
-  state        = signal<PanelState>('checking');
-  insights     = signal<AiInsights | null>(null);
+  state = signal<PanelState>('checking');
+  insights = signal<AiInsights | null>(null);
   errorMessage = signal('');
   acceptedTags = signal<Set<string>>(new Set());
   pendingChanges = signal(false);
