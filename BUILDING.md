@@ -1,4 +1,4 @@
-# Building Latent Model Organizer from Source
+# Building Snippet Vault from Source
 
 This document describes how to build a fully self-contained executable from source. The output mirrors the official releases — a single binary with a bundled Java runtime that requires no system-wide Java installation.
 
@@ -12,7 +12,7 @@ Before you begin, ensure the following are installed and available on your `PATH
 |---|---|---|
 | **JDK** | 21 (Temurin recommended) | Must include `jlink` — full JDK, not just a JRE |
 | **Maven** | 3.9+ | For building the Java backend |
-| **Node.js** | 20.x | For building the Vue frontend and Electron shell |
+| **Node.js** | 20.x | For building the Angular frontend and Electron shell |
 | **npm** | Bundled with Node 20 | Used for all frontend/Electron dependency management |
 
 > **Temurin JDK 21** is recommended as it is what the official CI pipeline uses.
@@ -23,10 +23,9 @@ Before you begin, ensure the following are installed and available on your `PATH
 ## Project Structure
 
 ```
-latent-model-organizer/
-├── backend/        # Java 21 HttpServer (Maven)
-├── frontend/       # Vue 3 + Vite
-└── electron/       # Electron shell and packaging config
+snippet-vault/
+├── backend/        # Java 21 Spring Boot (Maven)
+└── frontend/       # Angular 21 + Monaco Editor & Electron shell
 ```
 
 ---
@@ -35,53 +34,33 @@ latent-model-organizer/
 
 ```bash
 cd backend
-mvn clean package -DskipTests
+mvn clean install -DskipTests
 ```
 
-This produces `backend/target/backend.jar` — the self-contained executable JAR.
+This produces `backend/target/backend-0.0.1-SNAPSHOT.jar` — the self-contained executable JAR.
 
 ---
 
-## Step 2 — Build the Frontend
+## Step 2 — Build the Frontend and Run Locally
 
 ```bash
 cd frontend
-npm ci
-npm run build
+npm install
+npm run dev
 ```
 
-This compiles the Vue 3 app into static assets that Electron will serve locally.
+This will concurrently start the Angular development server and launch the Electron shell.
 
 ---
 
-## Step 3 — Install Electron Dependencies
-
-```bash
-cd electron
-npm ci
-```
-
----
-
-## Step 4 — Prepare the Runtime Directory
-
-Electron needs the backend JAR and a bundled JRE placed in a specific structure before packaging:
-
-```bash
-mkdir -p electron/runtime/app
-cp backend/target/backend.jar electron/runtime/app/
-```
-
----
-
-## Step 5 — Bundle a Custom JRE with jlink
+## Step 3 — Bundle a Custom JRE with jlink
 
 Rather than shipping a full JDK, `jlink` produces a minimal custom runtime (~40-50MB) containing only the modules the application needs. Run this from the **project root**:
 
 ```bash
 $JAVA_HOME/bin/jlink \
-  --add-modules java.base,java.net.http,java.logging,jdk.crypto.ec \
-  --output electron/runtime/jre \
+  --add-modules java.base,java.se,jdk.httpserver,jdk.crypto.ec,jdk.unsupported \
+  --output frontend/runtime/jre \
   --strip-debug \
   --no-man-pages \
   --no-header-files \
@@ -91,36 +70,43 @@ $JAVA_HOME/bin/jlink \
 **On Windows** (Git Bash or PowerShell):
 ```bash
 "$JAVA_HOME/bin/jlink" \
-  --add-modules java.base,java.net.http,java.logging,jdk.crypto.ec \
-  --output electron/runtime/jre \
+  --add-modules java.base,java.se,jdk.httpserver,jdk.crypto.ec,jdk.unsupported \
+  --output frontend/runtime/jre \
   --strip-debug \
   --no-man-pages \
   --no-header-files \
   --compress=2
 ```
 
-> The included modules serve specific purposes:
-> - `java.base` — The core Java API.
-> - `java.net.http` — For the `HttpClient` used by the Civitai API client.
-> - `java.logging` — Required for SLF4J/Logback integration.
-> - `jdk.crypto.ec` — Elliptic curve cryptography support for TLS connections.
+---
+
+## Step 4 — Prepare the Runtime Directory
+
+Electron needs the backend JAR and a bundled JRE placed in a specific structure before packaging:
+
+```bash
+mkdir -p frontend/runtime/app
+cp backend/target/backend-0.0.1-SNAPSHOT.jar frontend/runtime/app/backend.jar
+```
 
 ---
 
-## Step 6 — Package the Electron App
+## Step 5 — Package the Electron App
+
+*Note: Ensure `electron-builder` is configured in `frontend/package.json` with a `dist` script.*
 
 ```bash
-cd electron
+cd frontend
 npm run dist
 ```
 
-`electron-builder` will produce a platform-native binary in `electron/dist/`:
+`electron-builder` will produce a platform-native binary in `frontend/dist/`:
 
 | Platform | Output |
 |---|---|
-| Windows | `Latent Model Organizer Setup X.X.X.exe` |
-| Linux | `Latent Model Organizer-X.X.X.AppImage` |
-| macOS | `Latent Model Organizer-X.X.X.dmg` |
+| Windows | `Snippet Vault Setup X.X.X.exe` |
+| Linux | `Snippet Vault-X.X.X.AppImage` |
+| macOS | `Snippet Vault-X.X.X.dmg` |
 
 ---
 
@@ -129,7 +115,7 @@ npm run dist
 Because the app is not signed with an Apple Developer Certificate, macOS will block it on first launch. To clear the quarantine attribute after moving the `.app` to your Applications folder:
 
 ```bash
-sudo xattr -cr "/Applications/Latent Model Organizer.app"
+sudo xattr -cr "/Applications/Snippet Vault.app"
 ```
 
 ---
@@ -140,26 +126,23 @@ For convenience, the complete sequence from project root (Linux/macOS):
 
 ```bash
 # 1. Backend
-cd backend && mvn clean package -DskipTests && cd ..
+cd backend && mvn clean install -DskipTests && cd ..
 
-# 2. Frontend
-cd frontend && npm ci && npm run build && cd ..
+# 2. Frontend Dependencies & Build
+cd frontend && npm install && npm run build && cd ..
 
-# 3. Electron dependencies
-cd electron && npm ci && cd ..
-
-# 4. Runtime directory
-mkdir -p electron/runtime/app
-cp backend/target/backend.jar electron/runtime/app/
-
-# 5. Bundled JRE
+# 3. Bundled JRE
 $JAVA_HOME/bin/jlink \
-  --add-modules java.base,java.net.http,java.logging,jdk.crypto.ec \
-  --output electron/runtime/jre \
+  --add-modules java.base,java.se,jdk.httpserver,jdk.crypto.ec,jdk.unsupported \
+  --output frontend/runtime/jre \
   --strip-debug --no-man-pages --no-header-files --compress=2
 
-# 6. Package
-cd electron && npm run dist
+# 4. Runtime directory
+mkdir -p frontend/runtime/app
+cp backend/target/backend-0.0.1-SNAPSHOT.jar frontend/runtime/app/backend.jar
+
+# 5. Package
+cd frontend && npm run dist
 ```
 
 ---
@@ -176,4 +159,4 @@ A dependency requires a module not included in the custom JRE. Re-run `jlink` an
 Some distributions require `fuse` for AppImage creation. Install with `sudo apt install fuse` or equivalent.
 
 **Frontend assets not found by Electron**
-Ensure `npm run build` completed successfully in the `frontend/` directory before running `npm run dist` in `electron/`.
+Ensure `npm run build` completed successfully in the `frontend/` directory before packaging.

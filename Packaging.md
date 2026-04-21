@@ -1,6 +1,6 @@
 # Packaging & Release Guide (GitHub Actions)
 
-This guide explains how to build and release **Latent Model Organizer** for Windows, Linux, and macOS using GitHub Actions.
+This guide explains how to build and release **Snippet Vault** for Windows, Linux, and macOS using GitHub Actions.
 
 ## Prerequisites
 
@@ -82,3 +82,4 @@ Once all jobs are green:
     *   `.exe` (Windows Installer)
     *   `.AppImage` (Linux Portable)
     *   `.dmg` (macOS Installer)
+```
