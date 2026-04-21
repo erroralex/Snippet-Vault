@@ -1,0 +1,17 @@
+Make a critical, deep-dive analysis of this project, both @frontend and @backend. 
+Don't assume anything, go through every file to confirm. Compare it strictly to this type 
+of applications, does it fulfill the specifications? What does it do good, what needs 
+improvement and what is missing? It is a single-user local desktop application that will be a 
+portable folder with an .exe to run, no installer/wizard.
+
+Make a thorough review and list everything (good, needs improvement, bad). Be sure to check 
+each and every class, understand the logic. 
+
+See if all persistence actions works as intended. Check UI functionality. 
+What architecture designs is used? Then post a extensive review on the project 
+and list areas for improvement, new features and extended features. What patterns does it 
+follow? Does it follow good conventions? How is the persistence handling large image sets? 
+What unused methods are there? What methods is missing? Also, check tests, are they testing 
+the right things? Is the exception handling good?
+
+Finish with a top 5 recommended actions to take, most critical first, to make it production ready.

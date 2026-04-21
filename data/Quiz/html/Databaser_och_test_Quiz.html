@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tenta-Quiz Komplett: Java & Databaser</title>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-blue: #38bdf8;
+            --accent-green: #4ade80;
+            --accent-red: #f87171;
+            --border: #334155;
+            --btn-hover: #334155;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 850px;
+            padding: 20px;
+            margin-top: 20px;
+            margin-bottom: 40px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            color: var(--accent-blue);
+            margin: 0;
+            font-size: 2rem;
+        }
+
+        /* Stats Dashboard */
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-box {
+            background: var(--bg-card);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .stat-label { font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+        .stat-value { font-size: 1.8rem; font-weight: bold; margin-top: 5px; }
+        
+        .val-green { color: var(--accent-green); }
+        .val-red { color: var(--accent-red); }
+        .val-blue { color: var(--accent-blue); }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: var(--border);
+            border-radius: 4px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--accent-blue);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .quiz-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .question-text {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .option-btn {
+            background-color: rgba(255,255,255,0.05);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 16px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 1rem;
+            line-height: 1.4;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .option-btn:hover:not(:disabled) {
+            background-color: var(--btn-hover);
+            border-color: var(--accent-blue);
+            transform: translateX(5px);
+        }
+
+        .option-btn:disabled {
+            cursor: default;
+            opacity: 0.7;
+        }
+
+        /* Feedback states */
+        .option-btn.correct {
+            background-color: rgba(74, 222, 128, 0.15) !important;
+            border-color: var(--accent-green) !important;
+            color: var(--accent-green) !important;
+            font-weight: 600;
+        }
+
+        .option-btn.wrong {
+            background-color: rgba(248, 113, 113, 0.15) !important;
+            border-color: var(--accent-red) !important;
+            color: var(--accent-red) !important;
+            opacity: 0.5;
+        }
+
+        .next-btn {
+            margin-top: 25px;
+            padding: 12px 30px;
+            background-color: var(--accent-blue);
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 1rem;
+            display: none; 
+            float: right;
+            transition: opacity 0.2s;
+        }
+
+        .next-btn:hover { opacity: 0.9; }
+
+        /* Result Screen */
+        .result-screen { text-align: center; display: none; padding-top: 40px;}
+        .score-display { font-size: 5rem; font-weight: bold; color: var(--accent-blue); margin: 20px 0; line-height: 1;}
+        
+        .tag {
+            display: inline-block; padding: 4px 8px; border-radius: 4px;
+            font-size: 0.75rem; font-weight: bold; text-transform: uppercase;
+            margin-bottom: 15px; background: rgba(255,255,255,0.1); color: var(--text-secondary);
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .dashboard { grid-template-columns: 1fr; }
+            .question-text { font-size: 1.1rem; }
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Java & DB Examination</h1>
+        <p style="color: var(--text-secondary)">Komplett Quiz (50 frågor) – Balanserade svar</p>
+    </header>
+
+    <div id="quiz-ui">
+        <div class="dashboard">
+            <div class="stat-box">
+                <div class="stat-label">Fråga</div>
+                <div class="stat-value" id="q-counter">1 / 50</div>
+            </div>
+            <div class="stat-box" style="border-color: rgba(74, 222, 128, 0.3);">
+                <div class="stat-label">Rätt</div>
+                <div class="stat-value val-green" id="correct-count">0</div>
+            </div>
+            <div class="stat-box" style="border-color: rgba(248, 113, 113, 0.3);">
+                <div class="stat-label">Fel</div>
+                <div class="stat-value val-red" id="wrong-count">0</div>
+            </div>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress"></div>
+        </div>
+
+        <div class="quiz-card">
+            <div id="category-tag" class="tag">Topic</div>
+            <div class="question-text" id="question">Laddar frågor...</div>
+            <div class="options-grid" id="options">
+                </div>
+            <button class="next-btn" id="next-btn" onclick="nextQuestion()">Nästa fråga ➔</button>
+        </div>
+    </div>
+
+    <div id="result-ui" class="result-screen">
+        <h2>Resultat</h2>
+        <div class="score-display" id="final-score">0/0</div>
+        <p id="feedback-text" style="font-size: 1.2rem; margin-bottom: 30px;"></p>
+        
+        <div class="dashboard" style="max-width: 400px; margin: 0 auto 30px auto;">
+            <div class="stat-box">
+                <div class="stat-label">Rätt</div>
+                <div class="stat-value val-green" id="final-correct">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Fel</div>
+                <div class="stat-value val-red" id="final-wrong">0</div>
+            </div>
+             <div class="stat-box">
+                <div class="stat-label">Betyg</div>
+                <div class="stat-value val-blue" id="final-grade">-</div>
+            </div>
+        </div>
+
+        <button class="next-btn" style="display:inline-block; float:none;" onclick="location.reload()">Starta om quiz</button>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // DATA: 50 Questions (Full Set)
+    // ==========================================
+    const questionBank = [
+        // --- DBMS ---
+        {
+            category: "DBMS",
+            q: "Vad är den huvudsakliga skillnaden mellan begreppen Databas och DBMS?",
+            a: "Databasen är själva samlingen av datafiler, medan DBMS är mjukvaran som hanterar åtkomsten.",
+            options: [
+                "Databasen är hårdvaran där datan lagras, medan DBMS är nätverksprotokollet för överföring.",
+                "Databasen hanterar säkerhet och inloggning, medan DBMS enbart ansvarar för lagring på disken.",
+                "Databasen är själva samlingen av datafiler, medan DBMS är mjukvaran som hanterar åtkomsten.",
+                "Det finns ingen teknisk skillnad, begreppen används synonymt inom systemutveckling."
+            ]
+        },
+        {
+            category: "DBMS",
+            q: "Vad står akronymen ACID för inom transaktionshantering?",
+            a: "Atomicity, Consistency, Isolation, Durability",
+            options: [
+                "Association, Connectivity, Integration, Data",
+                "Atomicity, Consistency, Isolation, Durability",
+                "Access, Control, Information, Database",
+                "Availability, Consistency, Integrity, Durability"
+            ]
+        },
+        {
+            category: "DBMS",
+            q: "Varför föredras ett DBMS framför enkla textfiler för stora affärssystem?",
+            a: "För att DBMS hanterar samtidighet, dataintegritet och transaktioner korrekt.",
+            options: [
+                "För att textfiler tar betydligt mer plats på hårddisken än vad en databas gör.",
+                "För att DBMS hanterar samtidighet, dataintegritet och transaktioner korrekt.",
+                "För att Java helt saknar inbyggda bibliotek för att läsa och skriva textfiler.",
+                "För att textfiler inte kan flyttas mellan olika operativsystem utan att korrumperas."
+            ]
+        },
+        {
+            category: "DBMS",
+            q: "Vad innebär 'Concurrency Control' i en databasmiljö?",
+            a: "Att systemet hanterar flera samtidiga användare utan att data krockar eller skrivs över felaktigt.",
+            options: [
+                "Att databasen automatiskt replikerar all data till en sekundär backup-server i realtid.",
+                "Att systemet hanterar flera samtidiga användare utan att data krockar eller skrivs över felaktigt.",
+                "Att databasen kan konvertera valutor och tidszoner automatiskt vid internationella transaktioner.",
+                "Att systemet blockerar alla läsningar medan en administratör är inloggad."
+            ]
+        },
+        {
+            category: "DBMS",
+            q: "Vilket av följande är ett av de fem huvudansvaren för ett DBMS?",
+            a: "Recovery (Återställning vid systemkrasch)",
+            options: [
+                "GUI Generation (Skapa formulär automatiskt)",
+                "Recovery (Återställning vid systemkrasch)",
+                "Network Routing (Styra internettrafik)",
+                "Code Compilation (Kompilera applikationskod)"
+            ]
+        },
+        {
+            category: "DBMS",
+            q: "Vad innebär det att en transaktion är 'Atomic'?",
+            a: "Antingen genomförs hela transaktionen fullt ut, eller så genomförs ingenting alls.",
+            options: [
+                "Att transaktionen är den minsta möjliga enheten av data på hårddisken.",
+                "Antingen genomförs hela transaktionen fullt ut, eller så genomförs ingenting alls.",
+                "Att transaktionen körs snabbare än vanliga frågor tack vare prioritering.",
+                "Att transaktionen automatiskt delas upp i mindre bitar för att spara minne."
+            ]
+        },
+
+        // --- SQL (DDL/DML/Query) ---
+        {
+            category: "SQL",
+            q: "Vilket av följande kommandon klassificeras som DDL (Data Definition Language)?",
+            a: "CREATE TABLE",
+            options: [
+                "INSERT INTO",
+                "UPDATE SET",
+                "CREATE TABLE",
+                "SELECT FROM"
+            ]
+        },
+        {
+            category: "SQL",
+            q: "Vad är den funktionella skillnaden mellan WHERE och HAVING?",
+            a: "WHERE filtrerar rader före gruppering; HAVING filtrerar grupper efter att GROUP BY utförts.",
+            options: [
+                "WHERE används enbart för textsträngar; HAVING används enbart för numeriska värden.",
+                "WHERE är en äldre syntax som håller på att fasas ut; HAVING är den moderna standarden.",
+                "WHERE filtrerar rader före gruppering; HAVING filtrerar grupper efter att GROUP BY utförts.",
+                "WHERE kan bara användas med SELECT; HAVING kan bara användas med DELETE."
+            ]
+        },
+        {
+            category: "SQL",
+            q: "Vilken JOIN-typ visar alla rader från vänster tabell, samt matchande från höger (eller NULL)?",
+            a: "LEFT JOIN",
+            options: [
+                "INNER JOIN",
+                "LEFT JOIN",
+                "OUTER CROSS JOIN",
+                "RIGHT EXCLUSIVE JOIN"
+            ]
+        },
+        {
+            category: "SQL",
+            q: "Vad är syftet med en Primärnyckel (Primary Key)?",
+            a: "Att unikt identifiera varje rad i en tabell och förhindra dubbletter.",
+            options: [
+                "Att kryptera datan i tabellen så att obehöriga inte kan läsa den.",
+                "Att unikt identifiera varje rad i en tabell och förhindra dubbletter.",
+                "Att koppla ihop tabellen med en extern datakälla via nätverket.",
+                "Att sortera tabellen i bokstavsordning för snabbare utskrifter."
+            ]
+        },
+        {
+            category: "SQL",
+            q: "Vad händer om du försöker ta bort en rad som refereras av en annan tabell (Foreign Key restriction)?",
+            a: "Databasen nekar borttagningen och kastar ett felmeddelande om integritetsbrott.",
+            options: [
+                "Raden tas bort, och de refererande raderna i den andra tabellen raderas också automatiskt.",
+                "Databasen nekar borttagningen och kastar ett felmeddelande om integritetsbrott.",
+                "Raden tas bort, men referenserna i den andra tabellen pekar nu på slumpmässig data.",
+                "Databasen pausar borttagningen och skickar ett e-postmeddelande till administratören."
+            ]
+        },
+        {
+            category: "SQL",
+            q: "Vilket kommando används för att ändra värdet i en befintlig rad?",
+            a: "UPDATE",
+            options: [
+                "MODIFY",
+                "CHANGE",
+                "UPDATE",
+                "ALTER"
+            ]
+        },
+        {
+            category: "SQL",
+            q: "Vad returnerar en INNER JOIN?",
+            a: "Bara de rader där det finns en matchande nyckel i både tabell A och tabell B.",
+            options: [
+                "Alla rader från tabell A, oavsett om de har en matchning i tabell B eller inte.",
+                "Bara de rader där det finns en matchande nyckel i både tabell A och tabell B.",
+                "Alla rader från både tabell A och tabell B, där saknade värden ersätts med NULL.",
+                "De rader som finns i tabell A men som saknar motsvarighet i tabell B."
+            ]
+        },
+        {
+            category: "SQL",
+            q: "Vilket tecken används som wildcard i SQL tillsammans med LIKE?",
+            a: "% (Procenttecken)",
+            options: [
+                "* (Asterisk)",
+                "? (Frågetecken)",
+                "% (Procenttecken)",
+                "# (Fyrkant)"
+            ]
+        },
+        {
+            category: "SQL",
+            q: "Vilket kommando används för att ta bort en tabell och all dess data permanent?",
+            a: "DROP TABLE",
+            options: [
+                "DELETE TABLE",
+                "REMOVE ALL",
+                "DROP TABLE",
+                "CLEAR STRUCT"
+            ]
+        },
+        {
+            category: "SQL",
+            q: "Vad används SQL-kommandot 'AS' till?",
+            a: "För att ge en kolumn eller tabell ett tillfälligt alias i frågan.",
+            options: [
+                "För att jämföra om två värden är lika (Alternative Syntax).",
+                "För att ge en kolumn eller tabell ett tillfälligt alias i frågan.",
+                "För att automatiskt sortera resultatet i stigande ordning.",
+                "För att skapa en ny tabell som en kopia av en gammal."
+            ]
+        },
+        {
+            category: "SQL",
+            q: "Vad är en 'Foreign Key' (Främmande nyckel)?",
+            a: "Ett fält som refererar till primärnyckeln i en annan tabell för att skapa en relation.",
+            options: [
+                "En nyckel som används för att logga in i databasen från en extern dator.",
+                "Ett fält som refererar till primärnyckeln i en annan tabell för att skapa en relation.",
+                "En temporär nyckel som raderas automatiskt när sessionen avslutas.",
+                "Ett lösenord som krävs för att få utföra DELETE-kommandon."
+            ]
+        },
+        {
+            category: "SQL",
+            q: "Vilken SQL-sats används för att hämta unik data (ta bort dubbletter i svaret)?",
+            a: "SELECT DISTINCT",
+            options: [
+                "SELECT UNIQUE",
+                "SELECT DIFFERENT",
+                "SELECT SINGLE",
+                "SELECT DISTINCT"
+            ]
+        },
+        {
+            category: "SQL",
+            q: "Vilket kommando används för att sortera resultatet?",
+            a: "ORDER BY",
+            options: [
+                "SORT BY",
+                "GROUP BY",
+                "ALIGN BY",
+                "ORDER BY"
+            ]
+        },
+
+        // --- JDBC ---
+        {
+            category: "JDBC",
+            q: "Vilken är JDBC-drivrutinens (Driver) huvudsakliga uppgift?",
+            a: "Att översätta standardiserade JDBC-anrop till databasens specifika protokoll.",
+            options: [
+                "Att optimera SQL-frågorna så att de körs snabbare på servern.",
+                "Att översätta standardiserade JDBC-anrop till databasens specifika protokoll.",
+                "Att agera brandvägg och skydda databasen mot obehöriga anslutningar.",
+                "Att lagra resultatet av frågorna i en lokal cache på klientdatorn."
+            ]
+        },
+        {
+            category: "JDBC",
+            q: "Varför rekommenderas PreparedStatement över vanligt Statement ur säkerhetssynpunkt?",
+            a: "Det separerar SQL-kod från data, vilket eliminerar risken för SQL Injection.",
+            options: [
+                "Det krypterar automatiskt all data som skickas över nätverket.",
+                "Det separerar SQL-kod från data, vilket eliminerar risken för SQL Injection.",
+                "Det kräver att användaren autentiserar sig med tvåfaktorsinloggning.",
+                "Det tillåter endast läsningar (SELECT) och blockerar alla ändringar."
+            ]
+        },
+        {
+            category: "JDBC",
+            q: "Vad är konsekvensen av att inte stänga (close) en Connection?",
+            a: "Resursläckage som kan leda till att databasen till slut nekar nya anslutningar.",
+            options: [
+                "Databasen raderar automatiskt den data som senast behandlades.",
+                "Resursläckage som kan leda till att databasen till slut nekar nya anslutningar.",
+                "Ingenting allvarligt, eftersom Javas Garbage Collector alltid stänger dem direkt.",
+                "Säkerhetsrisken ökar eftersom anslutningen blir publik på internet."
+            ]
+        },
+        {
+            category: "JDBC",
+            q: "Vilken metod anropas för att exekvera en INSERT-sats?",
+            a: "executeUpdate()",
+            options: [
+                "executeQuery()",
+                "executeInsert()",
+                "executeUpdate()",
+                "executeChange()"
+            ]
+        },
+        {
+            category: "JDBC",
+            q: "Vad returnerar metoden executeUpdate()?",
+            a: "Ett heltal (int) som anger hur många rader som påverkades av ändringen.",
+            options: [
+                "Ett ResultSet-objekt som innehåller de rader som lagts till.",
+                "Ett heltal (int) som anger hur många rader som påverkades av ändringen.",
+                "En boolean (true/false) som indikerar om SQL-syntaxen var korrekt.",
+                "Ingenting (void), eftersom uppdateringar inte ger något svar."
+            ]
+        },
+        {
+            category: "JDBC",
+            q: "Hur itererar man genom resultatet från en SELECT-fråga i JDBC?",
+            a: "Genom att anropa resultSet.next() i en while-loop.",
+            options: [
+                "Genom att använda en for-loop: for(int i=0; i < rs.length; i++).",
+                "Genom att anropa resultSet.getAll() som returnerar en ArrayList.",
+                "Genom att anropa resultSet.next() i en while-loop.",
+                "Det sker automatiskt, datan kommer som en färdig Array."
+            ]
+        },
+        {
+            category: "JDBC",
+            q: "Var hamnar datan direkt efter att du kört executeQuery()?",
+            a: "I ett ResultSet-objekt som fungerar som en pekare mot resultatet.",
+            options: [
+                "Direkt i en Java-klass som matchar tabellens namn.",
+                "I en textfil på serverns hårddisk.",
+                "I ett ResultSet-objekt som fungerar som en pekare mot resultatet.",
+                "I din dators RAM-minne som en färdig String-array."
+            ]
+        },
+        {
+            category: "JDBC",
+            q: "Vilket undantag (Exception) måste du hantera (try-catch) vid nästan all JDBC-kod?",
+            a: "SQLException",
+            options: [
+                "DatabaseConnectionException",
+                "IOException",
+                "NullPointerException",
+                "SQLException"
+            ]
+        },
+        {
+            category: "JDBC",
+            q: "Vad är en 'Connection Pool'?",
+            a: "En cache av öppna databasanslutningar som återanvänds för att spara prestanda.",
+            options: [
+                "Ett område i minnet där data sparas om anslutningen bryts.",
+                "En cache av öppna databasanslutningar som återanvänds för att spara prestanda.",
+                "En lista med alla användarnamn och lösenord som har åtkomst till databasen.",
+                "En funktion som automatiskt kopplar ner inaktiva användare."
+            ]
+        },
+        {
+            category: "JDBC",
+            q: "Vad används '?' till i koden: 'SELECT * FROM users WHERE id = ?' ?",
+            a: "Det är en platshållare (parameter) som fylls i säkert av PreparedStatement.",
+            options: [
+                "Det är ett wildcard som matchar vilket ID som helst (samma som *).",
+                "Det betyder att ID-kolumnen kan vara NULL.",
+                "Det är en platshållare (parameter) som fylls i säkert av PreparedStatement.",
+                "Det indikerar att vi är osäkra på om kolumnen finns."
+            ]
+        },
+        {
+            category: "JDBC",
+            q: "Vad är 'DriverManager' i JDBC?",
+            a: "En klass som hanterar drivrutiner och delar ut Connections till applikationen.",
+            options: [
+                "En person på IT-avdelningen som ansvarar för databasen.",
+                "En klass som hanterar drivrutiner och delar ut Connections till applikationen.",
+                "Programmet man använder för att skriva SQL-kod (t.ex. Workbench).",
+                "En metod som automatiskt installerar uppdateringar till databasen."
+            ]
+        },
+
+        // --- ORM (Hibernate/JPA) ---
+        {
+            category: "ORM",
+            q: "Vad är 'Impedance Mismatch' i ORM-sammanhang?",
+            a: "Svårigheten att mappa objektorienterade grafer till relationella tabeller.",
+            options: [
+                "Ett nätverksfel som uppstår när databasen svarar för långsamt.",
+                "Svårigheten att mappa objektorienterade grafer till relationella tabeller.",
+                "När datatyperna i Java (t.ex. int) inte matchar databasens (t.ex. VARCHAR).",
+                "Ett versionskonfliktfel mellan Hibernate och JDBC-drivrutinen."
+            ]
+        },
+        {
+            category: "ORM",
+            q: "Vilken är en potentiell nackdel med att använda ett ORM-verktyg som Hibernate?",
+            a: "Det kan uppstå prestandaproblem och det är svårare att optimera genererad SQL.",
+            options: [
+                "Det fungerar endast med Oracle-databaser och inte med open source-alternativ.",
+                "Det kan uppstå prestandaproblem och det är svårare att optimera genererad SQL.",
+                "Det kräver att man skriver betydligt mer kod än vid användning av ren JDBC.",
+                "Det stöder inte transaktionshantering eller rollback-funktionalitet."
+            ]
+        },
+        {
+            category: "ORM",
+            q: "Vad står förkortningen ORM för?",
+            a: "Object Relational Mapping",
+            options: [
+                "Object Recursive Management",
+                "Oracle Resource Model",
+                "Object Relational Mapping",
+                "Oriented Request Method"
+            ]
+        },
+        {
+            category: "ORM",
+            q: "Vad är relationen mellan JPA och Hibernate?",
+            a: "JPA är specifikationen (interface), Hibernate är implementationen (verktyget).",
+            options: [
+                "JPA är den gamla versionen, Hibernate är den nya uppdateringen.",
+                "Hibernate är standarden från Oracle, JPA är en tredjeparts-kopia.",
+                "De är konkurrerande tekniker som inte har något med varandra att göra.",
+                "JPA är specifikationen (interface), Hibernate är implementationen (verktyget)."
+            ]
+        },
+        {
+            category: "ORM",
+            q: "Vad gör en '@Entity'-annotation i JPA/Hibernate?",
+            a: "Markera en Java-klass så att den motsvarar en tabell i databasen.",
+            options: [
+                "Markera en metod som ska köras automatiskt vid start.",
+                "Markera en Java-klass så att den motsvarar en tabell i databasen.",
+                "Anger att fältet är primärnyckel i tabellen.",
+                "Förhindrar att klassen sparas i databasen."
+            ]
+        },
+
+        // --- Testning & Mockito ---
+        {
+            category: "Testning",
+            q: "Vad är det primära syftet med Mocking (t.ex. Mockito) i enhetstester?",
+            a: "Att isolera koden som testas genom att simulera externa beroenden som databaser.",
+            options: [
+                "Att automatiskt generera testdata direkt i produktionsdatabasen.",
+                "Att isolera koden som testas genom att simulera externa beroenden som databaser.",
+                "Att mäta prestandan och hur lång tid varje databasanrop tar att utföra.",
+                "Att verifiera att nätverksuppkopplingen mot servern är stabil."
+            ]
+        },
+        {
+            category: "Testning",
+            q: "Varför bör man undvika riktiga databasanrop i enhetstester?",
+            a: "Riktiga anrop är långsamma, opålitliga och gör testerna svåra att upprepa.",
+            options: [
+                "Det är tekniskt omöjligt att koppla upp en databas inuti ett JUnit-test.",
+                "Riktiga anrop är långsamma, opålitliga och gör testerna svåra att upprepa.",
+                "Databaslicenser tillåter oftast inte att man kör automatiserade tester.",
+                "Testerna kan råka radera operativsystemet om man inte är försiktig."
+            ]
+        },
+        {
+            category: "Testning",
+            q: "Vad innebär begreppet 'Determinism' i testsammanhang?",
+            a: "Att testet alltid ger exakt samma resultat givet samma input, oavsett omgivning.",
+            options: [
+                "Att testet är skrivet på ett sådant sätt att det omöjligen kan misslyckas.",
+                "Att testet alltid ger exakt samma resultat givet samma input, oavsett omgivning.",
+                "Att testet körs i en bestämd ordning, från A till Ö.",
+                "Att testet automatiskt rättar buggar som upptäcks i koden."
+            ]
+        },
+        {
+            category: "Testning",
+            q: "Vad gör koden: when(mock.getVal()).thenReturn(5); ?",
+            a: "Instruerar mock-objektet att returnera 5 när metoden getVal anropas.",
+            options: [
+                "Kontrollerar i efterhand om metoden getVal faktiskt returnerade 5.",
+                "Instruerar mock-objektet att returnera 5 när metoden getVal anropas.",
+                "Kör metoden getVal på det riktiga objektet och verifierar att svaret blir 5.",
+                "Sparar värdet 5 i databasen via mock-objektet."
+            ]
+        },
+        {
+            category: "Testning",
+            q: "Vilken annotation används för att markera en metod som ett testfall i JUnit?",
+            a: "@Test",
+            options: [
+                "@Run",
+                "@TestCase",
+                "@Test",
+                "@Assert"
+            ]
+        },
+        {
+            category: "Testning",
+            q: "Vad är en 'Unit Test' (Enhetstest)?",
+            a: "Ett test som verifierar minsta möjliga kodbit (oftast en metod) i isolering.",
+            options: [
+                "Ett test som körs manuellt av en testare för att hitta grafiska fel.",
+                "Ett test som verifierar hela systemflödet från frontend till databas.",
+                "Ett test som verifierar minsta möjliga kodbit (oftast en metod) i isolering.",
+                "Ett test som kontrollerar prestandan under hög belastning."
+            ]
+        },
+        {
+            category: "Testning",
+            q: "Vad gör metoden 'verify()' i Mockito?",
+            a: "Kontrollerar att en specifik metod på mock-objektet har anropats.",
+            options: [
+                "Kontrollerar att databasen innehåller rätt data.",
+                "Kontrollerar att en specifik metod på mock-objektet har anropats.",
+                "Verifierar att Java-versionen är korrekt installerad.",
+                "Startar om testmiljön för att nollställa minnet."
+            ]
+        },
+        {
+            category: "Testning",
+            q: "Vad är 'Refactoring'?",
+            a: "Att städa och förbättra kodstrukturen utan att ändra dess externa beteende.",
+            options: [
+                "Att lägga till helt ny funktionalitet i systemet.",
+                "Att fixa en bugg som en användare har rapporterat.",
+                "Att städa och förbättra kodstrukturen utan att ändra dess externa beteende.",
+                "Att kommentera bort kod som inte längre används."
+            ]
+        },
+
+        // --- Blandat / Extra Concepts ---
+        {
+            category: "Blandat",
+            q: "Vad menas med att HTTP är ett 'stateless' protokoll?",
+            a: "Servern sparar ingen information om klientens tidigare förfrågningar mellan anropen.",
+            options: [
+                "Att protokollet inte kan användas för att överföra filer, bara text.",
+                "Servern sparar ingen information om klientens tidigare förfrågningar mellan anropen.",
+                "Att det saknar säkerhetsmekanismer och därför alltid är öppet för alla.",
+                "Att det kräver en konstant uppkoppling och aldrig får tappa nätverket."
+            ]
+        },
+        {
+            category: "JDBC",
+            q: "Vad är en 'Connection Leak'?",
+            a: "När programmet glömmer stänga anslutningar, vilket till slut fyller anslutningspoolen.",
+            options: [
+                "När data läcker ut från databasen till obehöriga via nätverket.",
+                "När programmet glömmer stänga anslutningar, vilket till slut fyller anslutningspoolen.",
+                "När en drivrutin kraschar och måste installeras om på servern.",
+                "När två användare försöker använda samma inloggningsuppgifter samtidigt."
+            ]
+        },
+        {
+            category: "SQL",
+            q: "Vad innebär 'Normalisering' av en databas?",
+            a: "Att strukturera data i tabeller för att minimera redundans (upprepning).",
+            options: [
+                "Att konvertera all text till stora bokstäver.",
+                "Att strukturera data i tabeller för att minimera redundans (upprepning).",
+                "Att se till att alla tabeller innehåller exakt lika många rader.",
+                "Att ta backup på databasen till ett normalt format."
+            ]
+        },
+        {
+            category: "Testning",
+            q: "Vad är 'Integration Testing'?",
+            a: "Att testa hur flera komponenter (t.ex. kod + databas) fungerar tillsammans.",
+            options: [
+                "Att testa en enskild metod helt isolerad från omvärlden.",
+                "Att testa hur flera komponenter (t.ex. kod + databas) fungerar tillsammans.",
+                "Att låta slutanvändare testa systemet innan lansering.",
+                "Att testa koden på olika operativsystem samtidigt."
+            ]
+        },
+        {
+            category: "SQL",
+            q: "Vilket kommando används för att tömma en tabell snabbt utan att ta bort själva tabellen?",
+            a: "TRUNCATE TABLE",
+            options: [
+                "DELETE TABLE",
+                "DROP TABLE",
+                "EMPTY TABLE",
+                "TRUNCATE TABLE"
+            ]
+        },
+        {
+            category: "Testning",
+            q: "Vilket påstående beskriver bäst TDD (Test Driven Development)?",
+            a: "Man skriver testet först (som misslyckas), sedan koden, sedan refaktorisering.",
+            options: [
+                "Man skriver koden först, och sedan tester om man hinner.",
+                "Man låter en AI generera testerna efter att projektet är klart.",
+                "Man skriver testet först (som misslyckas), sedan koden, sedan refaktorisering.",
+                "TDD handlar om att manuellt testa applikationen varje dag."
+            ]
+        }
+    ];
+
+    // ==========================================
+    // LOGIC
+    // ==========================================
+    
+    // Fisher-Yates Shuffle
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
+    }
+
+    let currentQuestionIndex = 0;
+    let correctCount = 0;
+    let wrongCount = 0;
+    let shuffledQuestions = [];
+
+    const ui = {
+        question: document.getElementById('question'),
+        options: document.getElementById('options'),
+        qCounter: document.getElementById('q-counter'),
+        correctCountDisplay: document.getElementById('correct-count'),
+        wrongCountDisplay: document.getElementById('wrong-count'),
+        progress: document.getElementById('progress'),
+        nextBtn: document.getElementById('next-btn'),
+        tag: document.getElementById('category-tag'),
+        quizArea: document.getElementById('quiz-ui'),
+        resultArea: document.getElementById('result-ui'),
+        finalScore: document.getElementById('final-score'),
+        finalCorrect: document.getElementById('final-correct'),
+        finalWrong: document.getElementById('final-wrong'),
+        finalGrade: document.getElementById('final-grade'),
+        feedbackText: document.getElementById('feedback-text')
+    };
+
+    function startQuiz() {
+        // Deep copy and shuffle questions
+        shuffledQuestions = shuffleArray([...questionBank]);
+        currentQuestionIndex = 0;
+        correctCount = 0;
+        wrongCount = 0;
+        
+        ui.quizArea.style.display = 'block';
+        ui.resultArea.style.display = 'none';
+        
+        updateStats();
+        showQuestion();
+    }
+
+    function updateStats() {
+        // Update dashboard
+        ui.qCounter.textContent = `${currentQuestionIndex + 1} / ${shuffledQuestions.length}`;
+        ui.correctCountDisplay.textContent = correctCount;
+        ui.wrongCountDisplay.textContent = wrongCount;
+
+        // Progress bar
+        const pct = ((currentQuestionIndex) / shuffledQuestions.length) * 100;
+        ui.progress.style.width = `${pct}%`;
+    }
+
+    function showQuestion() {
+        const qData = shuffledQuestions[currentQuestionIndex];
+        
+        // Update UI Text
+        ui.question.textContent = qData.q;
+        ui.tag.textContent = qData.category;
+        
+        // Tag Styling
+        let tagColor = "rgba(255,255,255,0.1)";
+        let tagText = "#94a3b8";
+        if(qData.category === "SQL") { tagColor = "rgba(74, 222, 128, 0.2)"; tagText = "#4ade80"; }
+        if(qData.category === "JDBC") { tagColor = "rgba(56, 189, 248, 0.2)"; tagText = "#38bdf8"; }
+        if(qData.category === "Testning") { tagColor = "rgba(192, 132, 252, 0.2)"; tagText = "#c084fc"; }
+        if(qData.category === "DBMS") { tagColor = "rgba(251, 191, 36, 0.2)"; tagText = "#fbbf24"; }
+        
+        ui.tag.style.background = tagColor;
+        ui.tag.style.color = tagText;
+
+        // Shuffle options
+        const options = shuffleArray([...qData.options]);
+        
+        ui.options.innerHTML = ''; 
+        ui.nextBtn.style.display = 'none'; 
+
+        options.forEach(optText => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = optText;
+            btn.onclick = () => handleAnswer(btn, optText, qData.a);
+            ui.options.appendChild(btn);
+        });
+    }
+
+    function handleAnswer(selectedBtn, selectedText, correctText) {
+        const allBtns = ui.options.querySelectorAll('.option-btn');
+        allBtns.forEach(btn => btn.disabled = true);
+
+        if (selectedText === correctText) {
+            selectedBtn.classList.add('correct');
+            correctCount++;
+        } else {
+            selectedBtn.classList.add('wrong');
+            wrongCount++;
+            // Show correct answer
+            allBtns.forEach(btn => {
+                if (btn.textContent === correctText) {
+                    btn.classList.add('correct');
+                }
+            });
+        }
+
+        // Update stats immediately to show result of this question
+        ui.correctCountDisplay.textContent = correctCount;
+        ui.wrongCountDisplay.textContent = wrongCount;
+        
+        ui.nextBtn.style.display = 'inline-block';
+    }
+
+    function nextQuestion() {
+        currentQuestionIndex++;
+        if (currentQuestionIndex < shuffledQuestions.length) {
+            updateStats();
+            showQuestion();
+        } else {
+            finishQuiz();
+        }
+    }
+
+    function finishQuiz() {
+        ui.quizArea.style.display = 'none';
+        ui.resultArea.style.display = 'block';
+        
+        const total = shuffledQuestions.length;
+        ui.finalScore.textContent = `${correctCount} / ${total}`;
+        ui.finalCorrect.textContent = correctCount;
+        ui.finalWrong.textContent = wrongCount;
+        
+        const pct = (correctCount / total) * 100;
+        let grade = "IG";
+        let feedback = "";
+        
+        if(pct >= 90) { grade = "VG"; feedback = "Fantastiskt! Du spikade det. 🚀"; }
+        else if(pct >= 65) { grade = "G"; feedback = "Bra jobbat! Du klarar tentan. 👍"; }
+        else if(pct >= 50) { grade = "G-"; feedback = "Godkänt med nöd och näppe. Repetera lite till. 📚"; }
+        else { grade = "IG"; feedback = "Tyvärr, du behöver plugga mer på materialet. 🔥"; }
+        
+        ui.finalGrade.textContent = grade;
+        ui.feedbackText.textContent = feedback;
+        
+        // Color code grade
+        if(grade === "VG") ui.finalGrade.className = "stat-value val-green";
+        else if(grade.startsWith("G")) ui.finalGrade.className = "stat-value val-blue";
+        else ui.finalGrade.className = "stat-value val-red";
+    }
+
+    window.onload = startQuiz;
+
+</script>
+
+</body>
+</html>

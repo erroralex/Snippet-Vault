@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hibernate Logic - En Pedagogisk Guide</title>
+    <style>
+        :root {
+            --primary-bg: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-main: #2d3436;
+            --text-light: #636e72;
+            
+            /* Pedagogiska färger */
+            --java-color: #6c5ce7; /* Lila för Java/Objekt */
+            --db-color: #d63031;   /* Röd för Databas/SQL */
+            --link-color: #0984e3; /* Blå för Kopplingen/Hibernate */
+            --success-color: #00b894; /* Grön för framgång/Cascade */
+            
+            --radius: 12px;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-main);
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            color: var(--text-main);
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            border-bottom: 3px solid var(--link-color);
+            display: inline-block;
+            padding-bottom: 5px;
+            margin-top: 40px;
+            color: var(--link-color);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: white;
+            margin-right: 5px;
+        }
+        .bg-java { background-color: var(--java-color); }
+        .bg-db { background-color: var(--db-color); }
+        .bg-hibernate { background-color: var(--link-color); }
+
+        /* Diagrams */
+        .diagram-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .box {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            width: 40%;
+            min-width: 300px;
+            border-top: 5px solid #ccc;
+        }
+
+        .box.java { border-color: var(--java-color); }
+        .box.db { border-color: var(--db-color); }
+
+        .arrow {
+            font-size: 2rem;
+            color: var(--text-light);
+        }
+
+        /* Code Blocks */
+        pre {
+            background: #2d3436;
+            color: #dfe6e9;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            position: relative;
+        }
+        
+        .annotation { color: #fab1a0; }
+        .keyword { color: #74b9ff; }
+        .string { color: #55efc4; }
+        .comment { color: #b2bec3; font-style: italic; }
+
+        /* Interactive Steps */
+        .step {
+            background: var(--card-bg);
+            border-left: 5px solid var(--success-color);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s;
+        }
+        .step:hover {
+            transform: translateX(5px);
+        }
+        .step-number {
+            font-weight: bold;
+            color: var(--success-color);
+            font-size: 1.2em;
+        }
+
+        /* Explanation Cards */
+        .concept-card {
+            background: white;
+            padding: 20px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+        }
+
+        .concept-title {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .icon { font-size: 1.5em; margin-right: 10px; }
+
+        /* Tooltip-like highlights */
+        .highlight {
+            background-color: #dfe6e9;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #d63031;
+        }
+
+        footer {
+            text-align: center;
+            margin-top: 50px;
+            color: var(--text-light);
+            font-size: 0.9em;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Hibernate Logik & Flöde</h1>
+        <p>En pedagogisk guide om hur Java-objekt blir databasrader.</p>
+        <div style="margin-top: 10px;">
+            <span class="badge bg-java">Java (Objekt)</span>
+            <span class="badge bg-hibernate">Hibernate (Tolken)</span>
+            <span class="badge bg-db">Databas (Tabeller)</span>
+        </div>
+    </header>
+
+    <section>
+        <h2>1. Helhetsbilden</h2>
+        <p>För att förstå koden måste vi inse att Java och Databasen ser världen på olika sätt. Hibernate är tolken emellan.</p>
+        
+        <div class="diagram-container">
+            <div class="box java">
+                <h3><span class="icon">☕</span>Java-vyn (Objektgraf)</h3>
+                <p>Här är relationer <strong>dubbelriktade</strong>. Vi vill kunna navigera åt båda håll:</p>
+                <ul>
+                    <li><code>customer.getOrders()</code> → Lista med ordrar</li>
+                    <li><code>order.getCustomer()</code> → Ägaren</li>
+                </ul>
+                <small>Båda objekten i minnet måste veta om varandra.</small>
+            </div>
+
+            <div class="arrow">↔️</div>
+
+            <div class="box db">
+                <h3><span class="icon">🗄️</span>Databas-vyn (Relationell)</h3>
+                <p>Här finns bara <strong>Foreign Keys</strong> (FK). En tabell pekar på en annan.</p>
+                <ul>
+                    <li><code>customer</code>-tabellen vet ingenting om ordern.</li>
+                    <li><code>orders</code>-tabellen har <code>customer_id</code>.</li>
+                </ul>
+                <small>Bara en sida (Ordern) håller kopplingen.</small>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <h2>2. Annoteringarna – Magin</h2>
+        <p>Hur mappar vi dessa två världar? Här är logiken bakom dina klasser.</p>
+
+        <div class="concept-card" style="border-top: 4px solid var(--java-color);">
+            <div class="concept-title"><span class="icon">🛡️</span>Customer.java (Den passiva sidan)</div>
+            <p>I din kod har <code>Customer</code> annoteringen <code>mappedBy</code>. Detta är avgörande.</p>
+            
+            <pre><code><span class="annotation">@OneToMany</span>(mappedBy = <span class="string">"customer"</span>, cascade = CascadeType.ALL)
+<span class="keyword">private</span> List&lt;Order&gt; orders = <span class="keyword">new</span> ArrayList&lt;&gt;();</code></pre>
+
+            <p><strong>Vad betyder detta?</strong></p>
+            <ul>
+                <li><span class="highlight">mappedBy = "customer"</span> betyder: "Jag äger <strong>inte</strong> relationen."</li>
+                <li>Hibernate får instruktionen: "Titta inte i Customer-tabellen efter FK. Gå till klassen <strong>Order</strong> och titta på fältet som heter <em>customer</em> där."</li>
+                <li>Om du glömmer detta skapar Hibernate ofta en onödig "Join Table".</li>
+            </ul>
+        </div>
+
+        <div class="concept-card" style="border-top: 4px solid var(--db-color);">
+            <div class="concept-title"><span class="icon">🔑</span>Order.java (Ägaren av relationen)</div>
+            <p><code>Order</code> är sidan som faktiskt har Foreign Key i databasen.</p>
+
+            <pre><code><span class="annotation">@ManyToOne</span>(optional = <span class="keyword">false</span>)
+<span class="annotation">@JoinColumn</span>(name = <span class="string">"customer_id"</span>)
+<span class="keyword">private</span> Customer customer;</code></pre>
+
+            <p><strong>Vad betyder detta?</strong></p>
+            <ul>
+                <li><span class="highlight">@JoinColumn(name="customer_id")</span> berättar vad kolumnen heter i databasen.</li>
+                <li>Detta är den <strong>ägande sidan</strong>. När Hibernate sparar datat, är det värdet i detta Java-fält som avgör vad som hamnar i databasen.</li>
+            </ul>
+        </div>
+    </section>
+
+    <section>
+        <h2>3. Flödet i Main (Steg för Steg)</h2>
+        <p>Vad händer egentligen när du kör <code>orm.saveCustomer(customer)</code>? Låt oss följa datat.</p>
+
+        <div class="step">
+            <div class="step-number">1. Skapa Objekt (Minnet)</div>
+            <p>Vi skapar <code>new Customer()</code> och <code>new Order()</code>. Just nu svävar de fritt i Javas minne (Heap). De har inget ID och ingen koppling till varandra.</p>
+        </div>
+
+        <div class="step">
+            <div class="step-number">2. Koppla ihop dem (Hjälpmetoder)</div>
+            <p>Detta är det viktigaste steget i din kod! Vi måste uppdatera <strong>båda</strong> sidor.</p>
+            <pre><code><span class="comment">// I Customer.java</span>
+<span class="keyword">public void</span> addOrder(Order order) {
+    orders.add(order);       <span class="comment">// 1. Kunden lägger ordern i sin lista</span>
+    order.setCustomer(<span class="keyword">this</span>); <span class="comment">// 2. Ordern får veta vem kunden är (Viktigast!)</span>
+}</code></pre>
+            <p><em>Varför?</em> Om vi missar <code>order.setCustomer(this)</code>, kommer <code>Order</code>-objektet ha <code>customer = null</code>. Eftersom Ordern äger relationen (se ovan), kommer Hibernate försöka spara en order utan ägare → Krasch!</p>
+        </div>
+
+        <div class="step">
+            <div class="step-number">3. Spara (Cascade-effekten)</div>
+            <p>Du anropar <code>orm.saveCustomer(customer)</code>. Nu startar dominobrickorna:</p>
+            <ol>
+                <li>Hibernate ser <strong>Customer</strong> (Ny) → <code>INSERT INTO customer...</code> (Får ID 1).</li>
+                <li>Hibernate ser att Customer har en lista med Orders och <code>CascadeType.ALL</code>.</li>
+                <li>Hibernate tar ID:t från kunden (1) och sätter på Ordern.</li>
+                <li>Hibernate sparar <strong>Order</strong> → <code>INSERT INTO orders (..., customer_id=1)</code>.</li>
+                <li>Ordern har i sin tur Cascade på <strong>Pinglor</strong> och <strong>Payment</strong>.</li>
+                <li>Hibernate sparar Pinglor och Payment automatiskt.</li>
+            </ol>
+        </div>
+    </section>
+
+    <section>
+        <h2>4. Hämta data (Lazy vs Eager)</h2>
+        <div class="diagram-container" style="justify-content: flex-start;">
+            <div class="box" style="width: 100%; border-color: #fdcb6e;">
+                <h3>🐢 Lazy (Lat) - Standard för Listor</h3>
+                <p>När du hämtar en kund, hämtar Hibernate normalt <strong>inte</strong> adresserna. Listan är tom (en Proxy).</p>
+                <p>Om du stänger databaskopplingen och sen försöker titta i listan → <code>LazyInitializationException</code> (Krasch!).</p>
+                <hr>
+                <h3>🐇 Eager (Pigg) - Lösningen</h3>
+                <p>Vi kan tvinga Hibernate att hämta allt direkt.</p>
+                <ol>
+                    <li><strong>Globalt:</strong> Sätt <code>fetch = FetchType.EAGER</code> i Entityn (som du gjorde på Address).</li>
+                    <li><strong>Per fråga:</strong> Använd <code>JOIN FETCH</code> i HQL (som vi gjorde på Pinglor och Payment).</li>
+                </ol>
+                <pre><code><span class="keyword">select distinct</span> o <span class="keyword">from</span> Order o <span class="keyword">join fetch</span> o.payment</code></pre>
+                <p>Detta säger: "Hämta ordern OCH betalningen i samma SQL-fråga."</p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>Genererad för utbildningssyfte | DemoWebshop Project</p>
+    </footer>
+</div>
+
+</body>
+</html>

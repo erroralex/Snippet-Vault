@@ -1,0 +1,9 @@
+in @components, go through each file and clean it up:
+
+1: There should be an modernly formatted extensive class-wide JavaDoc comment (or appropriate format for
+ .vue which doesn't support html tags in javadoc) that explains what the class does in detail, no 
+ method-level java-doc.
+
+2: Remove unnecessary comments and in-line comments. Only keep comments for complex/critical functions.
+
+DO NOT REMOVE OR CHANGE any code!

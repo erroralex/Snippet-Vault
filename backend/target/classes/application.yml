@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:sqlite:data/snippet-vault.db
+    driver-class-name: org.sqlite.JDBC
+  jpa:
+    # FIXED: Pointing to the new Hibernate 6 Community Dialect
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, shutdown
+  endpoint:
+    shutdown:
+      access: unrestricted
+    health:
+      show-details: never   # no sensitive info exposed
+
+snippetvault:
+  data-dir: data

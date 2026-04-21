@@ -1,0 +1,143 @@
+package com.nilsson.service;
+
+import com.nilsson.repository.SnippetRepository;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import static java.nio.file.StandardWatchEventKinds.*;
+
+/**
+ * ──────────────────────────────────────────────
+ * <h2>FileWatcherService</h2>
+ * ──────────────────────────────────────────────
+ * <p><strong>Responsibility:</strong> Monitors the local file system for external changes to snippet files and synchronizes them with the application's database and connected clients.</p>
+ * <p><strong>Functions:</strong></p>
+ * <ul>
+ * <li>Initializes and manages a background daemon thread that recursively watches a designated data directory.</li>
+ * <li>Detects file creation, modification, and deletion events using Java NIO's {@code WatchService} API.</li>
+ * <li>Debounces file modification events to prevent excessive processing.</li>
+ * <li>Reads updated content from externally modified snippet files.</li>
+ * <li>Updates the corresponding snippet entities in the database with the new content.</li>
+ * <li>Broadcasts WebSocket messages to connected UI clients to trigger real-time updates, enabling a seamless "edit-on-disk" workflow.</li>
+ * <li>Handles the registration of new directories created within the watched hierarchy.</li>
+ * </ul>
+ * <p><strong>Technical Role:</strong> A Spring {@code @Service} that leverages {@code WatchService} and a scheduled executor to provide asynchronous, real-time synchronization between the file system and the application's internal state, interacting with {@code LocalFileSystemStorage}, {@code SnippetRepository}, and {@code SimpMessagingTemplate}.</p>
+ * ──────────────────────────────────────────────
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class FileWatcherService {
+
+    private final LocalFileSystemStorage storage;
+    private final SnippetRepository snippetRepository;
+    private final SimpMessagingTemplate messagingTemplate;
+
+    private WatchService watchService;
+    private final ScheduledExecutorService executor =
+            Executors.newSingleThreadScheduledExecutor(r -> {
+                Thread t = new Thread(r, "file-watcher");
+                t.setDaemon(true);
+                return t;
+            });
+
+    @PostConstruct
+    public void start() throws IOException {
+        watchService = FileSystems.getDefault().newWatchService();
+        registerAll(storage.getDataRoot());
+        executor.submit(this::watchLoop);
+        log.info("FileWatcherService started, watching: {}", storage.getDataRoot());
+    }
+
+    @PreDestroy
+    public void stop() {
+        executor.shutdownNow();
+        try {
+            if (watchService != null) watchService.close();
+        } catch (IOException ignored) {
+        }
+    }
+
+    private void registerAll(Path dir) throws IOException {
+        Files.walk(dir)
+                .filter(Files::isDirectory)
+                .forEach(d -> {
+                    try {
+                        d.register(watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE);
+                    } catch (IOException e) {
+                        log.warn("Could not watch directory: {}", d, e);
+                    }
+                });
+    }
+
+    private void watchLoop() {
+        while (!Thread.currentThread().isInterrupted()) {
+            WatchKey key;
+            try {
+                key = watchService.take();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (ClosedWatchServiceException e) {
+                break;
+            }
+
+            for (WatchEvent<?> event : key.pollEvents()) {
+                WatchEvent.Kind<?> kind = event.kind();
+                if (kind == OVERFLOW) continue;
+
+                Path dir = (Path) key.watchable();
+                Path fileName = (Path) event.context();
+                Path absolute = dir.resolve(fileName);
+                String relative = storage.getDataRoot()
+                        .relativize(absolute).toString()
+                        .replace("\\", "/");
+
+                if (kind == ENTRY_MODIFY) {
+                    executor.schedule(
+                            () -> handleModify(relative),
+                            200, TimeUnit.MILLISECONDS
+                    );
+                } else if (kind == ENTRY_CREATE && Files.isDirectory(absolute)) {
+                    try {
+                        absolute.register(watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE);
+                    } catch (IOException e) {
+                        log.warn("Could not register new directory: {}", absolute, e);
+                    }
+                }
+            }
+
+            if (!key.reset()) {
+                log.warn("Watch key no longer valid for: {}", key.watchable());
+                key.cancel();
+            }
+        }
+    }
+
+    private void handleModify(String relativePath) {
+        snippetRepository.findByFilePath(relativePath).ifPresent(snippet -> {
+            try {
+                String content = storage.read(relativePath);
+                if (content != null && !content.equals(snippet.getContent())) {
+                    snippet.setContent(content);
+                    snippetRepository.save(snippet);
+                    messagingTemplate.convertAndSend("/topic/snippets",
+                            "external-update:" + snippet.getId());
+                    log.info("Synced external edit for snippet: {}", snippet.getTitle());
+                }
+            } catch (IOException e) {
+                log.error("Failed to sync external edit for {}: {}", relativePath, e.getMessage());
+            }
+        });
+    }
+}

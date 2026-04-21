@@ -1,0 +1,116 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger only when a tag starting with 'v' is pushed (e.g., v1.0.2)
+
+permissions:
+  contents: write
+
+# Forces Node 24 for all actions to fix the upcoming deprecation warnings
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false # Prevents macOS failures from cancelling Windows/Ubuntu
+      matrix:
+        os: [ windows-latest, ubuntu-latest, macos-latest ]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # --- VERSIONING: Extract version from pom.xml ---
+      - name: Extract Maven project version
+        shell: bash
+        run: echo "APP_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout -f backend/pom.xml)" >> $GITHUB_ENV
+
+      - name: Build Backend (Java HttpServer)
+        working-directory: ./backend
+        run: mvn clean package -DskipTests
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            electron/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install Frontend Dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Build Frontend (Vue)
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Install Electron Dependencies
+        working-directory: ./electron
+        run: npm ci
+
+      # --- VERSIONING: Inject Maven version into Electron ---
+      # Sync version for Electron
+      - name: Sync Electron version
+        working-directory: ./electron
+        shell: bash
+        run: npm version ${{ env.APP_VERSION }} --no-git-tag-version --allow-same-version
+
+      # Sync version for Frontend
+      - name: Sync Frontend version
+        working-directory: ./frontend
+        shell: bash
+        run: npm version ${{ env.APP_VERSION }} --no-git-tag-version --allow-same-version
+
+      # 1. Bundle a custom JRE using jlink FIRST
+      # CRITICAL: Included java.se (for Jackson) and jdk.httpserver (for API)
+      - name: Create Custom JRE
+        shell: bash
+        run: |
+          "$JAVA_HOME/bin/jlink" \
+            --add-modules java.se,jdk.httpserver,jdk.crypto.ec,jdk.unsupported \
+            --output electron/runtime \
+            --strip-debug \
+            --no-man-pages \
+            --no-header-files \
+            --compress=2
+
+      # 2. THEN prepare the app folder inside the newly created runtime directory
+      - name: Prepare Runtime Directory
+        shell: bash
+        run: |
+          mkdir -p electron/runtime/app
+          # Copy the exact jar name specified in pom.xml finalName
+          cp backend/target/backend.jar electron/runtime/app/backend.jar      
+
+      - name: Build Electron App
+        working-directory: ./electron
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Uncomment and add to repository secrets if distributing for macOS
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npm run dist
+
+      - name: Upload Artifacts
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            electron/dist/*.exe
+            electron/dist/*.AppImage
+            electron/dist/*.dmg

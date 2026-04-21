@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz: SQL, JDBC & ORM</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        h1 {
+            text-align: center;
+            color: #bb86fc;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 20px;
+        }
+        .question-card {
+            background-color: #2c2c2c;
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        .question-text {
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #ffffff;
+        }
+        .code-snippet {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #000;
+            padding: 8px;
+            border-radius: 4px;
+            color: #00ff00;
+            display: block;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        @media (max-width: 600px) {
+            .options { grid-template-columns: 1fr; }
+        }
+        label {
+            display: flex;
+            align-items: center;
+            background-color: #383838;
+            padding: 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.95em;
+        }
+        label:hover {
+            background-color: #4a4a4a;
+        }
+        input[type="radio"] {
+            margin-right: 10px;
+            accent-color: #bb86fc;
+        }
+        .submit-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: #bb86fc;
+            color: #000;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: background 0.3s;
+        }
+        .submit-btn:hover {
+            background-color: #9955e8;
+        }
+        .result-box {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 1.2em;
+            font-weight: bold;
+            display: none;
+        }
+        .correct { border: 2px solid #00e676; }
+        .incorrect { border: 2px solid #cf6679; }
+        .correct-text { color: #00e676; font-size: 0.9em; margin-top: 5px; display: block;}
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>SQL & ORM Kunskapstest</h1>
+    <div id="quiz-area"></div>
+    <button class="submit-btn" onclick="checkAnswers()">Rätta quizet</button>
+    <div id="result" class="result-box"></div>
+</div>
+
+<script>
+    const questions = [
+        // --- SQL SEKTION ---
+        {
+            q: "Vad används SQL-kommandot <span class='code-snippet'>SELECT DISTINCT</span> till?",
+            a: [
+                { text: "För att hämta unika värden utan dubbletter", isCorrect: true },
+                { text: "För att hämta alla rader sorterade i ordning", isCorrect: false },
+                { text: "För att hämta rader som har ett specifikt ID", isCorrect: false },
+                { text: "För att räkna antalet rader i en tabell", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vilket nyckelord används för att filtrera resultat EFTER en aggregering (t.ex. GROUP BY)?",
+            a: [
+                { text: "HAVING", isCorrect: true },
+                { text: "WHERE", isCorrect: false },
+                { text: "ORDER BY", isCorrect: false },
+                { text: "FILTER", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vad innebär en <span class='code-snippet'>LEFT JOIN</span> mellan Tabell A och Tabell B?",
+            a: [
+                { text: "Alla rader från A, och matchande från B (annars NULL)", isCorrect: true },
+                { text: "Endast rader som finns i både tabell A och tabell B", isCorrect: false },
+                { text: "Alla rader från både A och B oavsett matchning", isCorrect: false },
+                { text: "Alla rader från B, och matchande från A (annars NULL)", isCorrect: false }
+            ]
+        },
+        {
+            q: "Hur väljer du alla användare vars namn slutar på 'son'?",
+            a: [
+                { text: "WHERE namn LIKE '%son'", isCorrect: true },
+                { text: "WHERE namn LIKE 'son%'", isCorrect: false },
+                { text: "WHERE namn = '%son'", isCorrect: false },
+                { text: "WHERE namn ENDS WITH 'son'", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vad händer om du kör <span class='code-snippet'>UPDATE users SET age = 20;</span> utan WHERE-sats?",
+            a: [
+                { text: "Alla rader i tabellen uppdateras till ålder 20", isCorrect: true },
+                { text: "Endast den första raden i tabellen uppdateras", isCorrect: false },
+                { text: "Databasen ger ett felmeddelande och stoppar", isCorrect: false },
+                { text: "Ingenting händer eftersom WHERE saknas", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vilken SQL-funktion används för att räkna antalet rader i ett resultat?",
+            a: [
+                { text: "COUNT()", isCorrect: true },
+                { text: "SUM()", isCorrect: false },
+                { text: "TOTAL()", isCorrect: false },
+                { text: "NUMBER()", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vad är en 'Foreign Key' (främmande nyckel)?",
+            a: [
+                { text: "Ett fält som länkar till primärnyckeln i en annan tabell", isCorrect: true },
+                { text: "Ett unikt ID som automatiskt genereras av databasen", isCorrect: false },
+                { text: "Ett index som gör sökningar snabbare i tabellen", isCorrect: false },
+                { text: "En nyckel som används för att kryptera datan", isCorrect: false }
+            ]
+        },
+        {
+            q: "Hur sorterar du ett resultat fallande (högst till lägst) baserat på pris?",
+            a: [
+                { text: "ORDER BY pris DESC", isCorrect: true },
+                { text: "ORDER BY pris ASC", isCorrect: false },
+                { text: "SORT BY pris DOWN", isCorrect: false },
+                { text: "GROUP BY pris DESC", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vad är sant om <span class='code-snippet'>PreparedStatement</span> i JDBC jämfört med vanlig Statement?",
+            a: [
+                { text: "Den skyddar mot SQL Injection och kan vara snabbare", isCorrect: true },
+                { text: "Den används enbart för att skapa nya databastabeller", isCorrect: false },
+                { text: "Den tillåter inte parametrar utan kräver hårdkodad SQL", isCorrect: false },
+                { text: "Den är äldre och bör undvikas i modern Java-kod", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vilket objekt i JDBC innehåller svaret från en <span class='code-snippet'>executeQuery()</span>?",
+            a: [
+                { text: "ResultSet", isCorrect: true },
+                { text: "ResultList", isCorrect: false },
+                { text: "QueryResponse", isCorrect: false },
+                { text: "DatabaseRow", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vad gör metoden <span class='code-snippet'>resultSet.next()</span>?",
+            a: [
+                { text: "Flyttar markören till nästa rad och returnerar true om den finns", isCorrect: true },
+                { text: "Hämtar nästa kolumn i den nuvarande raden", isCorrect: false },
+                { text: "Kör nästa SQL-fråga i kön mot databasen", isCorrect: false },
+                { text: "Stänger kopplingen och sparar resultatet", isCorrect: false }
+            ]
+        },
+        {
+            q: "I vilken ordning sker normalt ett JDBC-flöde?",
+            a: [
+                { text: "Connection -> Statement -> ResultSet -> Close", isCorrect: true },
+                { text: "Statement -> Connection -> ResultSet -> Close", isCorrect: false },
+                { text: "ResultSet -> Statement -> Connection -> Close", isCorrect: false },
+                { text: "Connection -> ResultSet -> Statement -> Close", isCorrect: false }
+            ]
+        },
+        
+        // --- ORM & ANNOTATIONER SEKTION ---
+        {
+            q: "Vad markerar annoteringen <span class='code-snippet'>@Entity</span>?",
+            a: [
+                { text: "Att klassen ska mappas mot en databastabell", isCorrect: true },
+                { text: "Att klassen är en Controller i MVC-mönstret", isCorrect: false },
+                { text: "Att klassen innehåller enbart statiska metoder", isCorrect: false },
+                { text: "Att klassen är tillfällig och inte ska sparas", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vad används <span class='code-snippet'>@Id</span> till i en Entity-klass?",
+            a: [
+                { text: "För att markera vilken variabel som är primärnyckel", isCorrect: true },
+                { text: "För att skapa ett unikt index för snabbare sökning", isCorrect: false },
+                { text: "För att automatiskt öka värdet (auto-increment)", isCorrect: false },
+                { text: "För att koppla ihop klassen med en annan tabell", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vilken annotering används oftast tillsammans med @Id för att databasen ska skapa ID automatiskt?",
+            a: [
+                { text: "@GeneratedValue", isCorrect: true },
+                { text: "@AutoIncrement", isCorrect: false },
+                { text: "@CreateId", isCorrect: false },
+                { text: "@Sequence", isCorrect: false }
+            ]
+        },
+        {
+            q: "Om en kund (Customer) kan ha många ordrar (Order), vilken annotering används i Customer-klassen?",
+            a: [
+                { text: "@OneToMany", isCorrect: true },
+                { text: "@ManyToOne", isCorrect: false },
+                { text: "@OneToOne", isCorrect: false },
+                { text: "@ManyToMany", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vad innebär <span class='code-snippet'>fetch = FetchType.LAZY</span>?",
+            a: [
+                { text: "Data hämtas först när den faktiskt efterfrågas/används", isCorrect: true },
+                { text: "Data hämtas omedelbart tillsammans med huvudobjektet", isCorrect: false },
+                { text: "Databasen svarar långsammare för att spara prestanda", isCorrect: false },
+                { text: "Frågan körs i en bakgrundstråd (asynkront)", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vad gör <span class='code-snippet'>@Transient</span> i en Entity-klass?",
+            a: [
+                { text: "Anger att fältet INTE ska sparas i databasen", isCorrect: true },
+                { text: "Anger att fältet är obligatoriskt (NOT NULL)", isCorrect: false },
+                { text: "Anger att fältet ska krypteras innan det sparas", isCorrect: false },
+                { text: "Anger att fältet är en främmande nyckel", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vad används annoteringen <span class='code-snippet'>@JoinColumn</span> till?",
+            a: [
+                { text: "För att specifiera namnet på kolumnen som är Foreign Key", isCorrect: true },
+                { text: "För att skapa en ny tabell som binder ihop två andra", isCorrect: false },
+                { text: "För att hämta data från två tabeller samtidigt", isCorrect: false },
+                { text: "För att markera att en kolumn får innehålla NULL", isCorrect: false }
+            ]
+        },
+        {
+            q: "I en @OneToMany-relation, vilken sida brukar kallas 'owning side' (där FK finns)?",
+            a: [
+                { text: "Sidan med @ManyToOne", isCorrect: true },
+                { text: "Sidan med @OneToMany", isCorrect: false },
+                { text: "Båda sidorna äger relationen lika mycket", isCorrect: false },
+                { text: "Databasen bestämmer ägandeskapet dynamiskt", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vad gör <span class='code-snippet'>@Table(name = 'users')</span>?",
+            a: [
+                { text: "Tvingar klassen att mappas till tabellen 'users' istället för klassnamnet", isCorrect: true },
+                { text: "Skapar en ny databas med namnet 'users'", isCorrect: false },
+                { text: "Döper om Java-klassen till Users vid kompilering", isCorrect: false },
+                { text: "Anger att endast användare får komma åt tabellen", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vad innebär ACID inom databasteori?",
+            a: [
+                { text: "Atomicity, Consistency, Isolation, Durability", isCorrect: true },
+                { text: "Association, Connection, Integration, Database", isCorrect: false },
+                { text: "Access, Control, Interface, Definition", isCorrect: false },
+                { text: "Automated, Computed, Indexed, Distributed", isCorrect: false }
+            ]
+        },
+        
+        // --- BLANDAT & SVÅRARE ---
+        {
+            q: "Vad är JPQL?",
+            a: [
+                { text: "Ett frågespråk som jobbar mot objekt/entiteter istället för tabeller", isCorrect: true },
+                { text: "Ett plugin till Eclipse för att visualisera databaser", isCorrect: false },
+                { text: "En typ av databas som är snabbare än MySQL", isCorrect: false },
+                { text: "Java Public Query Library för nätverksanrop", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vad gör <span class='code-snippet'>CascadeType.ALL</span> i en relation?",
+            a: [
+                { text: "Operationer (spara/ta bort) sprids automatiskt till relaterade objekt", isCorrect: true },
+                { text: "Tar bort alla rader i tabellen om föräldern tas bort", isCorrect: false },
+                { text: "Hämtar alla relaterade objekt omedelbart (EAGER fetch)", isCorrect: false },
+                { text: "Tillåter att man sparar dubbletter i relationen", isCorrect: false }
+            ]
+        },
+        {
+            q: "Hur skriver man en subquery för att hitta produkter dyrare än snittet?",
+            a: [
+                { text: "WHERE price > (SELECT AVG(price) FROM products)", isCorrect: true },
+                { text: "WHERE price > AVERAGE(price) FROM products", isCorrect: false },
+                { text: "WHERE price > AVG(SELECT price FROM products)", isCorrect: false },
+                { text: "HAVING price > (SELECT SUM(price) FROM products)", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vad är skillnaden mellan <span class='code-snippet'>WHERE</span> och <span class='code-snippet'>ON</span> i en JOIN?",
+            a: [
+                { text: "ON anger hur tabellerna kopplas, WHERE filtrerar resultatet", isCorrect: true },
+                { text: "Det är ingen skillnad, de kan användas utbytbart", isCorrect: false },
+                { text: "WHERE används bara i INNER JOIN, ON i LEFT JOIN", isCorrect: false },
+                { text: "ON används för att sortera resultatet i samband med JOIN", isCorrect: false }
+            ]
+        },
+        {
+            q: "Vilket påstående stämmer bäst in på 'ORM' (Object Relational Mapping)?",
+            a: [
+                { text: "Det översätter data mellan objekt i kod och relationella databaser", isCorrect: true },
+                { text: "Det är ett verktyg för att rita databasdiagram", isCorrect: false },
+                { text: "Det är en typ av NoSQL-databas för ostrukturerad data", isCorrect: false },
+                { text: "Det är en optimeringsteknik för snabbare SQL-frågor", isCorrect: false }
+            ]
+        },
+        {
+            q: "Om du har <span class='code-snippet'>@Column(name='beskrivning')</span> på fältet 'desc', vad händer?",
+            a: [
+                { text: "Java-fältet 'desc' mappas till kolumnen 'beskrivning' i DB", isCorrect: true },
+                { text: "Fältet byter namn till 'beskrivning' i Java-koden", isCorrect: false },
+                { text: "Det skapas två kolumner: en 'desc' och en 'beskrivning'", isCorrect: false },
+                { text: "Inget, @Column används bara för dokumentation", isCorrect: false }
+            ]
+        },
+        {
+            q: "Varför används transaktioner (Transactions)?",
+            a: [
+                { text: "För att säkerställa att en serie operationer lyckas helt eller inte alls", isCorrect: true },
+                { text: "För att logga vem som gjorde vad i databasen", isCorrect: false },
+                { text: "För att snabba upp läsning av data från flera tabeller", isCorrect: false },
+                { text: "För att koppla upp sig mot databasen via nätverket", isCorrect: false }
+            ]
+        }
+    ];
+
+    // Fisher-Yates shuffle
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function renderQuiz() {
+        const quizArea = document.getElementById('quiz-area');
+        quizArea.innerHTML = "";
+        
+        // Slumpa frågorna
+        shuffleArray(questions);
+
+        questions.forEach((q, index) => {
+            const card = document.createElement('div');
+            card.className = 'question-card';
+            
+            // Slumpa svarsalternativen för varje fråga
+            // Vi måste klona arrayen för att inte förstöra "isCorrect" logiken permanent om vi slumpar om igen
+            let options = [...q.a];
+            shuffleArray(options);
+
+            let optionsHtml = "";
+            options.forEach((opt, i) => {
+                optionsHtml += `
+                    <label>
+                        <input type="radio" name="q${index}" value="${opt.isCorrect ? 'true' : 'false'}">
+                        ${opt.text}
+                    </label>
+                `;
+            });
+
+            card.innerHTML = `
+                <div class="question-text">${index + 1}. ${q.q}</div>
+                <div class="options">
+                    ${optionsHtml}
+                </div>
+                <div id="feedback-${index}" style="display:none; margin-top:10px; font-weight:bold;"></div>
+            `;
+            quizArea.appendChild(card);
+        });
+    }
+
+    function checkAnswers() {
+        let score = 0;
+        const resultBox = document.getElementById('result');
+        
+        questions.forEach((q, index) => {
+            const selected = document.querySelector(`input[name="q${index}"]:checked`);
+            const feedbackDiv = document.getElementById(`feedback-${index}`);
+            const card = feedbackDiv.parentElement;
+            
+            // Hitta det rätta svaret för att visa om man svarat fel
+            const correctOption = q.a.find(opt => opt.isCorrect).text;
+
+            feedbackDiv.style.display = 'block';
+            card.classList.remove('correct', 'incorrect');
+
+            if (selected) {
+                if (selected.value === 'true') {
+                    score++;
+                    card.classList.add('correct');
+                    feedbackDiv.innerHTML = "<span style='color:#00e676'>Rätt!</span>";
+                } else {
+                    card.classList.add('incorrect');
+                    feedbackDiv.innerHTML = `<span style='color:#cf6679'>Fel.</span> <span class="correct-text">Rätt svar var: ${correctOption}</span>`;
+                }
+            } else {
+                card.classList.add('incorrect');
+                feedbackDiv.innerHTML = `<span style='color:#cf6679'>Ej besvarad.</span> <span class="correct-text">Rätt svar var: ${correctOption}</span>`;
+            }
+        });
+
+        const percentage = Math.round((score / questions.length) * 100);
+        let msg = "";
+        if(percentage === 100) msg = "Perfekt! Du är en databas-mästare!";
+        else if(percentage > 75) msg = "Mycket bra jobbat!";
+        else if(percentage > 50) msg = "Godkänt, men repetera gärna lite till.";
+        else msg = "Dags att läsa på lite mer om SQL och annoteringar.";
+
+        resultBox.style.display = 'block';
+        resultBox.style.backgroundColor = percentage > 50 ? 'rgba(0, 230, 118, 0.1)' : 'rgba(207, 102, 121, 0.1)';
+        resultBox.style.color = percentage > 50 ? '#00e676' : '#cf6679';
+        resultBox.innerHTML = `Du fick ${score} av ${questions.length} rätt (${percentage}%).<br><br>${msg}`;
+        
+        // Scrolla till toppen eller resultatet
+        resultBox.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Starta quizet vid laddning
+    renderQuiz();
+
+</script>
+
+</body>
+</html>

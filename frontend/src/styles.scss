@@ -1,0 +1,189 @@
+// ── Deep Neon Cinematic theme tokens ──────────────────────────────────
+:root {
+  --bg-app:              #000000;
+  --bg-app-image:        radial-gradient(circle at 15% 25%, rgba(102, 252, 241, 0.08) 0%, transparent 40%),
+                         radial-gradient(circle at 85% 75%, rgba(216, 112, 255, 0.08) 0%, transparent 40%);
+  --bg-header:           rgba(0, 0, 0, 0.80);
+  --bg-sidebar-left:     rgba(0, 0, 0, 0.75);
+  --bg-panel:            rgba(0, 0, 0, 0.75);
+  --bg-panel-opaque:     rgba(10, 10, 10, 0.95);
+  --bg-input:            rgba(0, 0, 0, 0.85);
+  --bg-menu:             rgba(10, 10, 10, 0.95);
+  --bg-card:             rgba(15, 15, 15, 0.6);
+  --bg-btn-inner:        #000000;
+
+  --border-light:        rgba(255, 255, 255, 0.08);
+  --border-input:        rgba(255, 255, 255, 0.1);
+  --border-glass:        1px solid rgba(255, 255, 255, 0.05);
+
+  --text-primary:        #ffffff;
+  --text-secondary:      #a0a0a0;
+  --text-muted:          #666666;
+
+  --accent-primary:      #66fcf1;
+  --accent-secondary:    #d870ff;
+  --grad-text:           linear-gradient(90deg, #66fcf1, #d870ff);
+  --grad-hover:          linear-gradient(135deg, #66fcf1 0%, #d870ff 100%);
+
+  --status-danger:       #ff4d4d;
+  --status-warning:      #eab308;
+  --status-success:      #22c55e;
+
+  --glass-blur:          blur(20px);
+  --shadow-panel:        0 10px 40px -10px rgba(0,0,0,1.0), inset 0 0 0 1px rgba(255,255,255,0.06);
+  --shadow-glow-primary: 0 0 10px rgba(102, 252, 241, 0.1);
+
+  --scrollbar-track:     rgba(255, 255, 255, 0.02);
+  --scrollbar-thumb:     rgba(255, 255, 255, 0.1);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
+
+  // ── Language color mappings (using accent palette) ───────────────────
+  --lang-java:        #f89820;
+  --lang-typescript:  var(--accent-primary);
+  --lang-javascript:  #ffe033;
+  --lang-python:      #4ec9b0;
+  --lang-html:        #ff5e57;
+  --lang-css:         var(--accent-secondary);
+  --lang-scss:        #ff79c6;
+  --lang-sql:         #f1fa8c;
+  --lang-json:        var(--status-success);
+  --lang-markdown:    var(--accent-primary);
+  --lang-prompt:      var(--accent-secondary);
+  --lang-kotlin:      #c792ea;
+  --lang-rust:        var(--status-danger);
+  --lang-go:          var(--accent-primary);
+  --lang-csharp:      var(--status-success);
+  --lang-php:         var(--accent-secondary);
+  --lang-ruby:        var(--status-danger);
+  --lang-swift:       #f89820;
+  --lang-bash:        var(--status-success);
+  --lang-dockerfile:  var(--accent-primary);
+  --lang-yaml:        #ff5e57;
+  --lang-xml:         #f89820;
+  --lang-text:        var(--text-muted);
+  --lang-default:     var(--text-secondary);
+
+  // ── Motion ────────────────────────────────────────────────────────────
+  --ease-out-expo:  cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-standard:  cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-instant:    80ms;
+  --dur-fast:       150ms;
+  --dur-standard:   220ms;
+  --dur-slow:       350ms;
+
+  // ── Z-index ────────────────────────────────────────────────────────────
+  --z-command-palette: 900;
+  --z-context-menu:    800;
+  --z-bulk-bar:        700;
+  --z-tooltip:         600;
+  --ease-overlay:      cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+*:focus { outline: none; box-shadow: none; }
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--bg-app);
+  background-image: var(--bg-app-image);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, p { margin-top: 0; }
+
+// ── Text utilities ────────────────────────────────────────────────────────
+.text-gradient {
+  background: var(--grad-text);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+}
+
+// ── Scrollbars ────────────────────────────────────────────────────────────
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb); border-radius: 4px;
+  &:hover { background: var(--scrollbar-thumb-hover); }
+}
+
+// ── Glass card (reusable) ─────────────────────────────────────────────────
+.glass-panel {
+  background: var(--bg-panel);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-panel);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+// ── Generic button (reusable) ─────────────────────────────────────────────
+.btn {
+  background: transparent; border: none; color: var(--text-primary);
+  font-weight: 600; padding: 0.75rem 1.25rem; font-size: 0.9rem;
+  cursor: pointer; transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  position: relative; z-index: 1;
+  display: inline-flex; align-items: center; gap: 0.5rem;
+
+  &::before {
+    content: ''; position: absolute; inset: -1px;
+    background: var(--grad-hover); border-radius: 9px;
+    z-index: -2; opacity: 0; filter: blur(4px); transition: opacity 0.3s ease;
+  }
+  &::after {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.1); border-radius: 8px;
+    z-index: -1; transition: background 0.3s ease, border-color 0.3s ease;
+  }
+  &:hover { transform: translateY(-1px); color: var(--accent-primary); }
+  &:hover::before { opacity: 0.8; }
+  &:hover::after { background: var(--bg-btn-inner); border-color: rgba(0,0,0,0.1); }
+  &:active { transform: translateY(0); opacity: 0.9; }
+}
+
+.pressable {
+  transition: transform var(--dur-instant) var(--ease-standard);
+  &:active { transform: scale(0.96); }
+}
+
+// ── Input (reusable) ──────────────────────────────────────────────────────
+.input-text {
+  width: 100%;
+  background: var(--bg-input); border: 1px solid var(--border-input);
+  color: var(--text-primary); border-radius: 8px; padding: 0.65rem 1rem;
+  font-size: 0.9rem; font-family: inherit; transition: all 0.2s;
+  &:focus { border-color: var(--accent-primary); box-shadow: var(--shadow-glow-primary); }
+}
+
+// ── Animations ────────────────────────────────────────────────────────────
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes appear {
+    from { opacity: 0; transform: scale(0.95) translateY(4px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes drop-in {
+    from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes glow-pulse {
+    0%, 100% { opacity: 0.5; }
+    50%       { opacity: 1; }
+  }
+}
+
+.appear { animation: appear  var(--dur-standard) var(--ease-out-expo) both; }
+.fade-up { animation: fade-up var(--dur-standard) var(--ease-out-expo) both; }

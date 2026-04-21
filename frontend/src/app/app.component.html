@@ -1,0 +1,29 @@
+<app-titlebar></app-titlebar>
+<app-command-palette #palette></app-command-palette>
+
+<div class="main-container">
+
+  <div class="sidebar-column" [style.width.px]="sidebarWidth()">
+    <app-folder-tree></app-folder-tree>
+    <app-sidebar></app-sidebar>
+    <app-bulk-action-bar></app-bulk-action-bar>
+  </div>
+
+  <div class="resize-divider"
+       (mousedown)="startResize($event)"
+       [class.resizing]="isResizing()">
+  </div>
+
+  @if (snippetService.selectedSnippet(); as snippet) {
+    <div class="editor-column">
+      <app-description-pane [snippet]="snippet"></app-description-pane>
+      <app-monaco-editor [snippet]="snippet"></app-monaco-editor>
+    </div>
+    <app-ai-panel [snippet]="snippet"></app-ai-panel>
+  } @else {
+    <div class="no-snippet-selected">
+      <p>Select a snippet or press <kbd>Ctrl+P</kbd> to search</p>
+    </div>
+  }
+
+</div>
