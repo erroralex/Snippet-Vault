@@ -7,3 +7,13 @@ git push -u origin main
 
 
 git switch -C <branch name to create>
+
+// Run this command to undo the commit but keep your working directory 
+// (your files) exactly as they are:
+git reset HEAD~1
+
+// Clear the Git Cache
+git rm -r --cached <path>
+
+// Force push
+git push origin <branch> --force

@@ -1,5 +1,5 @@
 # ── Node / Angular ─────────────────────────────────────────────
-node_modules/
+frontend/node_modules/
 dist/
 tmp/
 out-tsc/
@@ -14,6 +14,7 @@ yarn-error.log
 testem.log
 /typings
 __screenshots__/
+.angular/
 
 # ── Electron build output ──────────────────────────────────────
 frontend/out/
