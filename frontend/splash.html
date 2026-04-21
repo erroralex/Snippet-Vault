@@ -1,135 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Snippet Vault</title>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snippet Vault</title>
+    <style>
+        /* Inlined theme variables and splash screen styles for reliability */
+        :root {
+            --bg-app: #000000;
+            --bg-app-image: radial-gradient(circle at 15% 25%, rgba(102, 252, 241, 0.08) 0%, transparent 40%), radial-gradient(circle at 85% 75%, rgba(216, 112, 255, 0.08) 0%, transparent 40%);
+            --bg-panel: rgba(0, 0, 0, 0.75);
+            --border-glass: 1px solid rgba(255, 255, 255, 0.05);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent-primary: #66fcf1;
+            --accent-secondary: #d870ff;
+            --grad-text: linear-gradient(90deg, #66fcf1, #d870ff);
+            --glass-blur: blur(20px);
+            --shadow-panel: 0 10px 40px -10px rgba(0, 0, 0, 1.0), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+            --shadow-glow-primary: 0 0 10px rgba(102, 252, 241, 0.1);
+        }
 
-    html, body {
-      width: 100%;
-      height: 100%;
-      background: #1e1e1e;
-      overflow: hidden;
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      user-select: none;
-    }
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+            background-color: var(--bg-app);
+            background-image: var(--bg-app-image);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            color: var(--text-primary);
+            overflow: hidden;
+            -webkit-app-region: drag;
+            user-select: none;
+        }
 
-    .container {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 32px;
-      /* Fade-out class added by main.js before switching windows */
-      transition: opacity 0.4s ease-out;
-    }
+        .splash-container {
+            text-align: center;
+            background: var(--bg-panel);
+            backdrop-filter: var(--glass-blur);
+            border: var(--border-glass);
+            box-shadow: var(--shadow-panel);
+            border-radius: 16px;
+            padding: 3rem 4rem;
+            animation: fade-in 0.8s ease-out;
+        }
 
-    .container.fade-out {
-      opacity: 0;
-    }
+        .title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: var(--grad-text);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+            text-shadow: var(--shadow-glow-primary);
+        }
 
-    /* App wordmark */
-    .wordmark {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+        .subtitle {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+            font-weight: 500;
+        }
 
-    .icon {
-      font-size: 28px;
-      color: #007acc;
-      font-family: 'Cascadia Code', 'Fira Code', monospace;
-      font-weight: 600;
-      letter-spacing: -2px;
-      line-height: 1;
-    }
+        .loader {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            margin: 0 auto;
+        }
 
-    .app-name {
-      font-size: 22px;
-      font-weight: 500;
-      color: #cccccc;
-      letter-spacing: 0.02em;
-    }
+        .loader-ring {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: var(--accent-primary);
+            border-left-color: var(--accent-secondary);
+            animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+            box-shadow: 0 0 15px rgba(102, 252, 241, 0.2), inset 0 0 15px rgba(216, 112, 255, 0.2);
+        }
 
-    /* Animated dots progress indicator */
-    .dots {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
+        .loader-ring::before {
+            content: '';
+            position: absolute;
+            top: 5px; right: 5px; bottom: 5px; left: 5px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-bottom-color: var(--accent-secondary);
+            border-right-color: var(--accent-primary);
+            animation: spin 2s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite reverse;
+        }
 
-    .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #007acc;
-      animation: pulse 1.4s ease-in-out infinite;
-      opacity: 0.3;
-    }
+        .loader-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 12px;
+            background: var(--text-primary);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--text-primary), 0 0 20px var(--accent-primary);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
 
-    .dot:nth-child(1) { animation-delay: 0s; }
-    .dot:nth-child(2) { animation-delay: 0.2s; }
-    .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
-    @keyframes pulse {
-      0%, 80%, 100% { opacity: 0.3; transform: scale(1); }
-      40%            { opacity: 1;   transform: scale(1.3); }
-    }
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
 
-    /* Status text */
-    .status {
-      font-size: 12px;
-      color: #555;
-      letter-spacing: 0.04em;
-      margin-top: -16px;  /* pull closer to dots */
-    }
-
-    /* Thin progress bar at the bottom */
-    .progress-track {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 2px;
-      background: #2d2d2d;
-      overflow: hidden;
-    }
-
-    .progress-fill {
-      height: 100%;
-      width: 30%;
-      background: #007acc;
-      border-radius: 0 2px 2px 0;
-      animation: progress 2s ease-in-out infinite;
-    }
-
-    @keyframes progress {
-      0%   { transform: translateX(-100%); width: 30%; }
-      50%  { width: 60%; }
-      100% { transform: translateX(400%); width: 30%; }
-    }
-  </style>
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+            50% { transform: translate(-50%, -50%) scale(1.5); opacity: 1; box-shadow: 0 0 15px var(--text-primary), 0 0 30px var(--accent-primary); }
+        }
+    </style>
 </head>
 <body>
-  <div class="container" id="container">
-    <div class="wordmark">
-      <span class="icon">❰❱</span>
-      <span class="app-name">Snippet Vault</span>
+    <div class="splash-container">
+        <div class="title">Snippet Vault</div>
+        <div class="subtitle">Initializing Development Environment...</div>
+        <div class="loader">
+            <div class="loader-ring"></div>
+            <div class="loader-center"></div>
+        </div>
     </div>
-    <div class="dots">
-      <div class="dot"></div>
-      <div class="dot"></div>
-      <div class="dot"></div>
-    </div>
-    <span class="status" id="status">Starting backend...</span>
-    <div class="progress-track">
-      <div class="progress-fill"></div>
-    </div>
-  </div>
 </body>
 </html>

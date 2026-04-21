@@ -163,9 +163,13 @@ app.whenReady().then(async () => {
     await waitForBackend(BACKEND_TIMEOUT_MS);
 
     // Trigger the CSS fade-out on the splash
-    await splash.webContents.executeJavaScript(
-      'document.getElementById("container").classList.add("fade-out")'
-    );
+    await splash.webContents.executeJavaScript(`
+      const container = document.querySelector(".splash-container");
+      if (container) {
+          container.style.transition = 'opacity 0.4s ease-out';
+          container.style.opacity = '0';
+      }
+    `);
 
     // Wait for the fade transition to finish (matches the 0.4s CSS transition)
     await new Promise(resolve => setTimeout(resolve, 420));
@@ -177,11 +181,14 @@ app.whenReady().then(async () => {
   } catch (err) {
     // Backend never came up — show an error in the splash then quit
     await splash.webContents.executeJavaScript(`
-      document.getElementById("status").textContent = "Backend failed to start. Check IntelliJ.";
-      document.querySelector(".dots").style.display = "none";
-      document.querySelector(".progress-fill").style.animation = "none";
-      document.querySelector(".progress-fill").style.background = "#e85d24";
-      document.querySelector(".progress-fill").style.width = "100%";
+      const statusElement = document.querySelector(".subtitle");
+      if (statusElement) {
+          statusElement.textContent = "Backend failed to start. Check IntelliJ.";
+      }
+      const loaderElement = document.querySelector(".loader");
+      if (loaderElement) {
+          loaderElement.style.display = "none";
+      }
     `);
     // Leave the splash visible so the user can read the message
     // They can close manually or wait — do not force quit
