@@ -21,18 +21,18 @@
     -->
     <style>
         :root {
-            --bg-app: #000000;
-            --bg-app-image: radial-gradient(circle at 15% 25%, rgba(102, 252, 241, 0.08) 0%, transparent 40%), radial-gradient(circle at 85% 75%, rgba(216, 112, 255, 0.08) 0%, transparent 40%);
-            --bg-panel: rgba(0, 0, 0, 0.75);
+            --bg-app: #121212;
+            --bg-app-image: none;
+            --bg-panel: rgba(30, 30, 30, 0.80);
             --border-glass: 1px solid rgba(255, 255, 255, 0.05);
-            --text-primary: #ffffff;
-            --text-secondary: #a0a0a0;
-            --accent-primary: #66fcf1;
-            --accent-secondary: #d870ff;
-            --grad-text: linear-gradient(90deg, #66fcf1, #d870ff);
-            --glass-blur: blur(20px);
-            --shadow-panel: 0 10px 40px -10px rgba(0, 0, 0, 1.0), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-            --shadow-glow-primary: 0 0 10px rgba(102, 252, 241, 0.1);
+            --text-primary: #f0f0f0;
+            --text-secondary: #b0b0b0;
+            --accent-primary: #e69d67;
+            --accent-secondary: #d4af37;
+            --grad-text: linear-gradient(135deg, #e69d67 0%, #f0c27b 100%);
+            --glass-blur: blur(12px);
+            --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.50);
+            --shadow-glow-primary: 0 0 10px rgba(230, 157, 103, 0.20);
         }
 
         body {
@@ -98,7 +98,7 @@
             border-top-color: var(--accent-primary);
             border-left-color: var(--accent-secondary);
             animation: spin 1.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
-            box-shadow: 0 0 15px rgba(102, 252, 241, 0.2), inset 0 0 15px rgba(216, 112, 255, 0.2);
+            box-shadow: 0 0 15px rgba(230, 157, 103, 0.20), inset 0 0 15px rgba(212, 175, 55, 0.20);
         }
 
         .loader-ring::before {

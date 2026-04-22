@@ -36,7 +36,7 @@ import {Folder} from './models/folder.model';
         (click)="snippetService.activeFolderId.set(null)"
         (dragover)="$event.preventDefault()"
         (drop)="onDropToRoot($event)">
-        <span class="folder-icon">◈</span>
+        <i class="pi pi-bookmark mr-2 folder-icon"></i>
         <span class="folder-name">All snippets</span>
         <span class="folder-count">{{ allCount() }}</span>
       </div>
@@ -47,7 +47,7 @@ import {Folder} from './models/folder.model';
         (click)="snippetService.activeFolderId.set('root')"
         (dragover)="$event.preventDefault()"
         (drop)="onDropToRoot($event)">
-        <span class="folder-icon">⊡</span>
+        <i class="pi pi-file mr-2 folder-icon"></i>
         <span class="folder-name">Snippet Vault</span>
         <span class="folder-count">{{ inboxCount() }}</span>
       </div>
@@ -97,7 +97,11 @@ import {Folder} from './models/folder.model';
           {{ folder.expanded ? '▾' : '▸' }}
         </button>
 
-        <span class="folder-icon-colored">{{ folder.icon }}</span>
+        <i class="pi mr-2 folder-icon-colored"
+           [class.pi-folder-open]="folder.expanded"
+           [class.pi-folder]="!folder.expanded"
+           [style.color]="folder.color || 'inherit'">
+        </i>
 
         @if (renamingFolderId() === folder.id) {
           <input
@@ -193,13 +197,13 @@ import {Folder} from './models/folder.model';
       }
 
       &.active {
-        background: rgba(102, 252, 241, 0.05);
+        background: rgba(230, 157, 103, 0.05);
         color: var(--text-primary);
         border-left-color: var(--folder-color, var(--accent-primary));
       }
 
       &.drag-over {
-        background: rgba(102, 252, 241, 0.05);
+        background: rgba(230, 157, 103, 0.05);
         border-left-color: var(--accent-primary);
       }
     }
@@ -223,11 +227,22 @@ import {Folder} from './models/folder.model';
       font-size: 13px;
       color: var(--text-muted);
       flex-shrink: 0;
+      transition: color 0.2s;
     }
 
     .folder-icon-colored {
       font-size: 13px;
       flex-shrink: 0;
+      transition: color 0.2s;
+    }
+
+    .mr-2 {
+      margin-right: 0.5rem;
+    }
+
+    .folder-item.active .folder-icon,
+    .folder-item.active .folder-icon-colored {
+      color: inherit !important;
     }
 
     .folder-name {
