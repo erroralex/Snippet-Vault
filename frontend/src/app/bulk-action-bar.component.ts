@@ -57,8 +57,8 @@ import {FolderService} from './folder.service';
       bottom: 0;
       left: 0;
       right: 0;
-      background: linear-gradient(135deg, rgba(102, 252, 241, 0.08), rgba(216, 112, 255, 0.08));
-      border-top: 1px solid rgba(102, 252, 241, 0.2);
+      background: linear-gradient(135deg, rgba(230, 157, 103, 0.08), rgba(212, 175, 55, 0.08));
+      border-top: 1px solid rgba(230, 157, 103, 0.20);
       backdrop-filter: var(--glass-blur);
       padding: 8px 10px;
       display: flex;
@@ -115,7 +115,7 @@ import {FolderService} from './folder.service';
 
       &.danger {
         border-color: rgba(255, 77, 77, 0.3);
-        color: var(--accent-secondary);
+        color: var(--status-danger);
       }
 
       &.danger:hover {

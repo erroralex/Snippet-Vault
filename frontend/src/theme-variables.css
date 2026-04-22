@@ -1,69 +1,79 @@
-/* ── Deep Neon Cinematic theme tokens ────────────────────────────────── */
+/* ── Dark Premium Gold theme tokens ─────────────────────────────────── */
 :root {
-  --bg-app:              #000000;
-  --bg-app-image:        radial-gradient(circle at 15% 25%, rgba(102, 252, 241, 0.08) 0%, transparent 40%),
-                         radial-gradient(circle at 85% 75%, rgba(216, 112, 255, 0.08) 0%, transparent 40%);
-  --bg-header:           rgba(0, 0, 0, 0.80);
-  --bg-sidebar-left:     rgba(0, 0, 0, 0.75);
-  --bg-panel:            rgba(0, 0, 0, 0.75);
-  --bg-panel-opaque:     rgba(10, 10, 10, 0.95);
-  --bg-input:            rgba(0, 0, 0, 0.85);
-  --bg-menu:             rgba(10, 10, 10, 0.95);
-  --bg-card:             rgba(15, 15, 15, 0.6);
-  --bg-btn-inner:        #000000;
+  /* --- Backgrounds --- */
+  --bg-app:              #121212;
+  --bg-app-image:        none;
+  --bg-header:           rgba(18, 18, 18, 0.98);
+  --bg-sidebar-left:     rgba(20, 20, 20, 0.98);
+  --bg-panel:            rgba(30, 30, 30, 0.80);
+  --bg-panel-opaque:     #1e1e1e;
+  --bg-input:            #0a0a0a;
+  --bg-menu:             #1e1e1e;
+  --bg-card:             rgba(30, 30, 30, 0.60);
+  --bg-btn-inner:        #1e1e1e;
 
-  --border-light:        rgba(255, 255, 255, 0.08);
-  --border-input:        rgba(255, 255, 255, 0.1);
+  /* --- Borders --- */
+  --border-light:        rgba(255, 255, 255, 0.05);
+  --border-input:        rgba(255, 255, 255, 0.08);
   --border-glass:        1px solid rgba(255, 255, 255, 0.05);
 
-  --text-primary:        #ffffff;
-  --text-secondary:      #a0a0a0;
-  --text-muted:          #666666;
+  /* --- Text --- */
+  --text-primary:        #f0f0f0;
+  --text-secondary:      #b0b0b0;
+  --text-muted:          #757575;
 
-  --accent-primary:      #66fcf1;
-  --accent-secondary:    #d870ff;
-  --grad-text:           linear-gradient(90deg, #66fcf1, #d870ff);
-  --grad-hover:          linear-gradient(135deg, #66fcf1 0%, #d870ff 100%);
+  /* --- Accents & Gradients --- */
+  --accent-primary:      #e69d67;
+  --accent-secondary:    #d4af37;
+  --grad-text:           linear-gradient(135deg, #e69d67 0%, #f0c27b 100%);
+  --grad-hover:          linear-gradient(135deg, #e69d67 0%, #d4af37 100%);
+  --grad-border:         linear-gradient(135deg, #e69d67 0%, #d4af37 100%);
 
-  --status-danger:       #ff4d4d;
-  --status-warning:      #eab308;
-  --status-success:      #22c55e;
+  /* --- Status --- */
+  --status-danger:       #ef5350;
+  --status-warning:      #ffca28;
+  --status-success:      #66bb6a;
 
-  --glass-blur:          blur(20px);
-  --shadow-panel:        0 10px 40px -10px rgba(0,0,0,1.0), inset 0 0 0 1px rgba(255,255,255,0.06);
-  --shadow-glow-primary: 0 0 10px rgba(102, 252, 241, 0.1);
+  /* --- Effects --- */
+  --glass-blur:          blur(12px);
+  --shadow-panel:        0 8px 32px rgba(0, 0, 0, 0.50);
+  --shadow-glow-primary: 0 0 10px rgba(230, 157, 103, 0.20);
+  --shadow-glow-secondary: 0 0 15px rgba(212, 175, 55, 0.20);
 
-  --scrollbar-track:     rgba(255, 255, 255, 0.02);
-  --scrollbar-thumb:     rgba(255, 255, 255, 0.1);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
+  /* --- Scrollbars --- */
+  --scrollbar-track:       rgba(255, 255, 255, 0.02);
+  --scrollbar-thumb:       rgba(255, 255, 255, 0.10);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.15);
 
-  /* ── Language color mappings (using accent palette) ─────────────────── */
+  /* --- Language colour palette ---
+     Tokens used by language-color.ts and referenced in sidebar chip colours.
+     Keep language colours vivid and distinct against the dark-grey background.  */
   --lang-java:        #f89820;
-  --lang-typescript:  var(--accent-primary);
+  --lang-typescript:  #e69d67;   /* matches --accent-primary */
   --lang-javascript:  #ffe033;
   --lang-python:      #4ec9b0;
   --lang-html:        #ff5e57;
-  --lang-css:         var(--accent-secondary);
+  --lang-css:         #d4af37;   /* matches --accent-secondary */
   --lang-scss:        #ff79c6;
   --lang-sql:         #f1fa8c;
-  --lang-json:        var(--status-success);
-  --lang-markdown:    var(--accent-primary);
-  --lang-prompt:      var(--accent-secondary);
+  --lang-json:        #66bb6a;
+  --lang-markdown:    #e69d67;
+  --lang-prompt:      #d4af37;
   --lang-kotlin:      #c792ea;
-  --lang-rust:        var(--status-danger);
-  --lang-go:          var(--accent-primary);
-  --lang-csharp:      var(--status-success);
-  --lang-php:         var(--accent-secondary);
-  --lang-ruby:        var(--status-danger);
+  --lang-rust:        #ef5350;
+  --lang-go:          #4ec9b0;
+  --lang-csharp:      #66bb6a;
+  --lang-php:         #c792ea;
+  --lang-ruby:        #ef5350;
   --lang-swift:       #f89820;
-  --lang-bash:        var(--status-success);
-  --lang-dockerfile:  var(--accent-primary);
+  --lang-bash:        #66bb6a;
+  --lang-dockerfile:  #e69d67;
   --lang-yaml:        #ff5e57;
   --lang-xml:         #f89820;
-  --lang-text:        var(--text-muted);
-  --lang-default:     var(--text-secondary);
+  --lang-text:        #757575;
+  --lang-default:     #b0b0b0;
 
-  /* ── Motion ──────────────────────────────────────────────────────────── */
+  /* --- Motion --- */
   --ease-out-expo:  cubic-bezier(0.22, 1, 0.36, 1);
   --ease-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-standard:  cubic-bezier(0.4, 0, 0.2, 1);
@@ -72,7 +82,7 @@
   --dur-standard:   220ms;
   --dur-slow:       350ms;
 
-  /* ── Z-index ──────────────────────────────────────────────────────────── */
+  /* --- Z-index --- */
   --z-command-palette: 900;
   --z-context-menu:    800;
   --z-bulk-bar:        700;

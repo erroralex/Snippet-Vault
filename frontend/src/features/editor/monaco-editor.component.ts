@@ -20,15 +20,21 @@ import { languageColor } from '../../app/language-color';
 type Monaco = typeof import('monaco-editor');
 
 /**
- * A wrapper component that integrates the Monaco Editor into the Angular application.
- *
- * This component provides a robust code editing experience with syntax highlighting
- * based on the snippet's language. It dynamically loads the Monaco Editor library
- * to optimize initial bundle size and ensure compatibility with server-side rendering
- * (only loading in the browser). It features automatic saving with a debounce
- * mechanism to minimize API requests, a manual save shortcut (Ctrl+S), and visual
- * indicators for unsaved changes. It also includes a quick-copy button to easily
- * grab the snippet's code.
+ * ──────────────────────────────────────────────
+ * <h2>MonacoEditorComponent</h2>
+ * ──────────────────────────────────────────────
+ * <p><strong>Responsibility:</strong> Integrates the Monaco Editor into the Angular application, providing a professional-grade code editing experience.</p>
+ * <p><strong>Functions:</strong></p>
+ * <ul>
+ * <li>Dynamically loads the Monaco Editor library to optimize initial bundle size and ensure Server-Side Rendering (SSR) compatibility.</li>
+ * <li>Provides syntax highlighting based on the current snippet's language.</li>
+ * <li>Implements a custom, programmatically defined editor theme that aligns with the application's overall design system.</li>
+ * <li>Features an automatic saving mechanism with a debounce timer to minimize API requests during typing.</li>
+ * <li>Supports manual save via a Ctrl+S keyboard shortcut.</li>
+ * <li>Includes a quick-copy button and visual indicators for unsaved changes.</li>
+ * </ul>
+ * <p><strong>Technical Role:</strong> An Angular {@code @Component} that acts as a wrapper around the imperative Monaco Editor API, managing its lifecycle, configuration, and data synchronization within the reactive Angular environment.</p>
+ * ──────────────────────────────────────────────
  */
 @Component({
   selector: 'app-monaco-editor',
@@ -112,49 +118,48 @@ export class MonacoEditorComponent implements OnDestroy {
       return;
     }
 
-    // Define the custom theme before creating the editor
-    this.monaco.editor.defineTheme('neon-dark', {
+    this.monaco.editor.defineTheme('gold-dark', {
       base: 'vs-dark',
       inherit: true,
       rules: [
-        { token: '',           foreground: 'e0e0e0', background: '000000' },
-        { token: 'comment',    foreground: '555566', fontStyle: 'italic' },
-        { token: 'keyword',    foreground: '66fcf1', fontStyle: 'bold' },
-        { token: 'string',     foreground: 'd870ff' },
-        { token: 'number',     foreground: 'bd93f9' },
-        { token: 'type',       foreground: '66fcf1' },
-        { token: 'class',      foreground: '22c55e' },
-        { token: 'function',   foreground: 'f1fa8c' },
-        { token: 'variable',   foreground: 'e0e0e0' },
-        { token: 'operator',   foreground: 'd870ff' },
-        { token: 'annotation', foreground: 'f89820' },
-        { token: 'tag',        foreground: 'ff5e57' },
-        { token: 'attribute',  foreground: '66fcf1' },
+        {token: '', foreground: 'e0e0e0', background: '121212'},
+        {token: 'comment', foreground: '757575', fontStyle: 'italic'},
+        {token: 'keyword', foreground: 'e69d67', fontStyle: 'bold'},
+        {token: 'string', foreground: 'f0c27b'},
+        {token: 'number', foreground: 'bd93f9'},
+        {token: 'type', foreground: 'd4af37'},
+        {token: 'class', foreground: '66bb6a'},
+        {token: 'function', foreground: 'e69d67'},
+        {token: 'variable', foreground: 'e0e0e0'},
+        {token: 'operator', foreground: 'd4af37'},
+        {token: 'annotation', foreground: 'f89820'},
+        {token: 'tag', foreground: 'ff5e57'},
+        {token: 'attribute', foreground: 'e69d67'},
       ],
       colors: {
-        'editor.background':                  '#000000',
-        'editor.foreground':                  '#e0e0e0',
-        'editor.lineHighlightBackground':     '#0d0d0d',
-        'editor.selectionBackground':         '#d870ff28',
-        'editor.inactiveSelectionBackground': '#d870ff14',
-        'editorLineNumber.foreground':        '#333344',
-        'editorLineNumber.activeForeground':  '#66fcf1',
-        'editorCursor.foreground':            '#66fcf1',
-        'editorWhitespace.foreground':        '#1a1a2a',
-        'editorIndentGuide.background1':      '#1a1a2a',
-        'editorIndentGuide.activeBackground1':'#333344',
-        'editor.findMatchBackground':         '#d870ff44',
-        'editor.findMatchHighlightBackground':'#66fcf122',
-        'scrollbarSlider.background':         '#ffffff12',
-        'scrollbarSlider.hoverBackground':    '#ffffff22',
-        'scrollbarSlider.activeBackground':   '#66fcf133',
+        'editor.background': '#121212',
+        'editor.foreground': '#e0e0e0',
+        'editor.lineHighlightBackground': '#1a1a1a',
+        'editor.selectionBackground': 'rgba(230, 157, 103, 0.15)',
+        'editor.inactiveSelectionBackground': 'rgba(230, 157, 103, 0.08)',
+        'editorLineNumber.foreground': '#333344',
+        'editorLineNumber.activeForeground': '#e69d67',
+        'editorCursor.foreground': '#e69d67',
+        'editorWhitespace.foreground': '#1a1a2a',
+        'editorIndentGuide.background1': '#1a1a2a',
+        'editorIndentGuide.activeBackground1': '#333344',
+        'editor.findMatchBackground': 'rgba(212, 175, 55, 0.25)',
+        'editor.findMatchHighlightBackground': 'rgba(230, 157, 103, 0.12)',
+        'scrollbarSlider.background': '#ffffff12',
+        'scrollbarSlider.hoverBackground': '#ffffff22',
+        'scrollbarSlider.activeBackground': 'rgba(230, 157, 103, 0.20)',
       }
     });
 
     this.editor = this.monaco.editor.create(this.editorContainer.nativeElement, {
       value: this.snippet()?.content || '',
       language: this.getMonacoLanguage(this.snippet()?.language || 'plaintext'),
-      theme: 'neon-dark',   // ← use the custom theme
+      theme: 'gold-dark',
       automaticLayout: true,
       minimap: { enabled: false },
       readOnly: false,

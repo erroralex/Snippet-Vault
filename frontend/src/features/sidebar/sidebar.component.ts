@@ -199,6 +199,14 @@ import {languageColor} from '../../app/language-color';
     </div>
   `,
   styles: [`
+    :host {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
     .sidebar-container {
       height: 100%;
       display: flex;
@@ -375,7 +383,7 @@ import {languageColor} from '../../app/language-color';
       font-size: 11px;
       color: var(--accent-secondary);
       flex-shrink: 0;
-      background: rgba(216, 112, 255, 0.06);
+      background: rgba(212, 175, 55, 0.06);
 
       button {
         background: none;
@@ -549,7 +557,7 @@ import {languageColor} from '../../app/language-color';
       }
 
       &.active {
-        background: rgba(102, 252, 241, 0.05);
+        background: rgba(230, 157, 103, 0.05);
         border-left-color: var(--accent-color, var(--accent-primary));
 
         .item-title {
@@ -558,7 +566,7 @@ import {languageColor} from '../../app/language-color';
       }
 
       &.selected {
-        background: rgba(216, 112, 255, 0.06);
+        background: rgba(212, 175, 55, 0.06);
         border-left-color: var(--accent-secondary);
       }
 
@@ -569,7 +577,7 @@ import {languageColor} from '../../app/language-color';
 
       &.drag-over {
         border-top: 2px solid var(--accent-primary);
-        background: rgba(102, 252, 241, 0.04);
+        background: rgba(230, 157, 103, 0.04);
       }
     }
 
@@ -621,13 +629,13 @@ import {languageColor} from '../../app/language-color';
       padding: 1px 6px;
       border-radius: 99px;
       cursor: pointer;
-      background: rgba(216, 112, 255, 0.08);
+      background: rgba(212, 175, 55, 0.08);
       color: var(--accent-secondary);
-      border: 1px solid rgba(216, 112, 255, 0.2);
+      border: 1px solid rgba(212, 175, 55, 0.2);
       transition: all var(--dur-fast);
 
       &:hover {
-        background: rgba(216, 112, 255, 0.15);
+        background: rgba(212, 175, 55, 0.15);
         border-color: var(--accent-secondary);
       }
     }
