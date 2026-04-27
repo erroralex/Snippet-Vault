@@ -54,7 +54,7 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
-      - name: Build Frontend (Vue)
+      - name: Build Frontend (Angular)
         working-directory: ./frontend
         run: npm run build
 
@@ -81,7 +81,7 @@ jobs:
         shell: bash
         run: |
           "$JAVA_HOME/bin/jlink" \
-            --add-modules java.se,jdk.httpserver,jdk.crypto.ec,jdk.unsupported \
+            --add-modules java.se,jdk.httpserver,jdk.crypto.ec,jdk.unsupported,java.naming,java.desktop,java.management,java.security.jgss,java.instrument,java.sql,jdk.naming.rmi \
             --output electron/runtime \
             --strip-debug \
             --no-man-pages \

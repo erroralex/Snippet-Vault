@@ -9,8 +9,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -37,6 +39,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class SnippetService {
 
     private final SnippetRepository repository;
@@ -58,13 +61,6 @@ public class SnippetService {
     public Snippet createSnippet(String title, String language) {
         String relativePath = FilePathUtils.relativePathFor(null, language, title);
 
-        try {
-            storage.write(relativePath, "");
-        } catch (IOException e) {
-            log.error("Failed to create file for new snippet '{}': {}", title, e.getMessage());
-            throw new RuntimeException("Could not create snippet file: " + relativePath, e);
-        }
-
         Snippet snippet = Snippet.builder()
                 .id(UUID.randomUUID())
                 .title(title)
@@ -75,6 +71,14 @@ public class SnippetService {
                 .build();
 
         Snippet saved = repository.save(snippet);
+
+        try {
+            storage.write(relativePath, "");
+        } catch (IOException e) {
+            log.error("Failed to create file for new snippet '{}': {}", title, e.getMessage());
+            throw new UncheckedIOException("Could not create snippet file: " + relativePath, e);
+        }
+
         broadcast("created");
         return saved;
     }
@@ -83,13 +87,16 @@ public class SnippetService {
         Snippet s = repository.findById(UUID.fromString(id)).orElseThrow();
         s.setContent(content);
         repository.save(s);
+        
         try {
             if (s.getFilePath() != null) {
                 storage.write(s.getFilePath(), content);
             }
         } catch (IOException e) {
             log.error("Failed to write content for snippet {}: {}", id, e.getMessage());
+            throw new UncheckedIOException("Failed to write snippet content to disk", e);
         }
+        
         broadcast("updated");
     }
 
@@ -111,18 +118,23 @@ public class SnippetService {
             }
         } catch (IOException e) {
             log.error("Failed to rename/create file for snippet {}: {}", id, e.getMessage());
+            throw new UncheckedIOException("Failed to rename/create snippet file on disk", e);
         }
+        
         broadcast("renamed");
     }
 
     public void delete(String id) {
         Snippet s = repository.findById(UUID.fromString(id)).orElseThrow();
         repository.deleteById(UUID.fromString(id));
+        
         try {
             storage.delete(s.getFilePath());
         } catch (IOException e) {
             log.error("Failed to delete file for snippet {}: {}", id, e.getMessage());
+            throw new UncheckedIOException("Failed to delete snippet file from disk", e);
         }
+        
         broadcast("deleted");
     }
 
@@ -138,6 +150,7 @@ public class SnippetService {
         repository.save(s);
     }
 
+    @Transactional(readOnly = true)
     public List<Snippet> search(String q, String language) {
         if (q == null || q.isBlank()) {
             return language != null
@@ -170,23 +183,25 @@ public class SnippetService {
     }
 
     public void moveSnippets(List<String> ids, String folderId) {
-        ids.forEach(id ->
-                repository.findById(UUID.fromString(id)).ifPresent(s -> {
-                    String oldPath = s.getFilePath();
-                    s.setFolderId(folderId);
-                    String newPath = buildRelativePath(s);
-                    s.setFilePath(newPath);
-                    repository.save(s);
-                    try {
-                        storage.move(oldPath, newPath);
-                    } catch (IOException e) {
-                        log.error("Failed to move file for snippet {}: {}", id, e.getMessage());
-                    }
-                })
-        );
+        for (String id : ids) {
+            repository.findById(UUID.fromString(id)).ifPresent(s -> {
+                String oldPath = s.getFilePath();
+                s.setFolderId(folderId);
+                String newPath = buildRelativePath(s);
+                s.setFilePath(newPath);
+                repository.save(s);
+                try {
+                    storage.move(oldPath, newPath);
+                } catch (IOException e) {
+                    log.error("Failed to move file for snippet {}: {}", id, e.getMessage());
+                    throw new UncheckedIOException("Failed to move snippet file on disk", e);
+                }
+            });
+        }
         broadcast("moved");
     }
 
+    @Transactional(readOnly = true)
     public List<Snippet> getTemplates() {
         return repository.findByTemplateTrue();
     }
@@ -203,13 +218,16 @@ public class SnippetService {
                 .build();
         Snippet saved = repository.save(newSnippet);
         String relativePath = buildRelativePath(saved);
+        saved.setFilePath(relativePath);
+        saved = repository.save(saved);
+        
         try {
             storage.write(relativePath, saved.getContent() != null ? saved.getContent() : "");
-            saved.setFilePath(relativePath);
-            repository.save(saved);
         } catch (IOException e) {
             log.error("Failed to write file for snippet {}: {}", saved.getId(), e.getMessage());
+            throw new UncheckedIOException("Failed to write snippet template to disk", e);
         }
+        
         broadcast("created");
         return saved;
     }

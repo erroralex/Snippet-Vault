@@ -43,7 +43,7 @@ type Monaco = typeof import('monaco-editor');
   template: `
     <div class="editor-wrapper">
       <div class="editor-header" [style.border-bottom-color]="accentColor()">
-        <span class="snippet-title">{{ snippet()?.title }}</span>
+        <span class="snippet-title">{{ snippet().title }}</span>
         <div class="header-right">
           <button
             class="copy-btn pressable"
@@ -52,7 +52,7 @@ type Monaco = typeof import('monaco-editor');
             {{ copyLabel() }}
           </button>
           <span class="snippet-language" [style.color]="accentColor()">
-            {{ snippet()?.language }}
+            {{ snippet().language }}
           </span>
           @if (isDirty()) {
             <span class="dirty-dot"></span>
@@ -61,11 +61,11 @@ type Monaco = typeof import('monaco-editor');
           }
         </div>
       </div>
-      @if (snippet()?.filePath) {
+      @if (snippet().filePath) {
         <div class="file-path-bar">
           <span class="file-path-icon">◫</span>
-          <span class="file-path-text" [title]="snippet()?.filePath">
-            {{ snippet()?.filePath }}
+          <span class="file-path-text" [title]="snippet().filePath">
+            {{ snippet().filePath }}
           </span>
         </div>
       }
@@ -90,7 +90,7 @@ export class MonacoEditorComponent implements OnDestroy {
   private editor: import('monaco-editor').editor.IStandaloneCodeEditor | undefined;
 
   accentColor = computed(() =>
-    languageColor(this.snippet()?.language ?? '', this.snippet()?.colorLabel)
+    languageColor(this.snippet().language ?? '', this.snippet().colorLabel)
   );
 
   constructor() {
@@ -157,8 +157,8 @@ export class MonacoEditorComponent implements OnDestroy {
     });
 
     this.editor = this.monaco.editor.create(this.editorContainer.nativeElement, {
-      value: this.snippet()?.content || '',
-      language: this.getMonacoLanguage(this.snippet()?.language || 'plaintext'),
+      value: this.snippet().content || '',
+      language: this.getMonacoLanguage(this.snippet().language || 'plaintext'),
       theme: 'gold-dark',
       automaticLayout: true,
       minimap: { enabled: false },
