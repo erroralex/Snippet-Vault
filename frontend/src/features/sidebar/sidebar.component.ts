@@ -122,6 +122,7 @@ import {languageColor} from '../../app/language-color';
             [attr.data-id]="snippet.id"
             draggable="true"
             (click)="onSnippetClick($event, snippet)"
+            (contextmenu)="onRightClick($event, snippet)"
             (dragstart)="onDragStart($event, snippet.id)"
             (dragend)="onDragEnd()"
             (dragenter)="onDragEnter($event, snippet.id)">
@@ -195,8 +196,51 @@ import {languageColor} from '../../app/language-color';
           </li>
         }
       </ul>
-
     </div>
+
+    <!-- Context Menu -->
+    @if (contextMenuVisible()) {
+      <div class="context-menu" [style.left.px]="contextMenuPosition().x" [style.top.px]="contextMenuPosition().y" (click)="$event.stopPropagation()">
+        <button class="context-menu-item pressable" (click)="openEditModal()">
+          <span class="icon">✎</span> Edit Metadata
+        </button>
+      </div>
+    }
+
+    <!-- Edit Modal -->
+    @if (editModalVisible()) {
+      <div class="modal-backdrop" (click)="closeEditModal()">
+        <div class="modal-content" (click)="$event.stopPropagation()">
+          <h3>Edit Snippet Metadata</h3>
+
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" class="form-input" [(ngModel)]="editData.title" />
+          </div>
+
+          <div class="form-group">
+            <label>Language</label>
+            <select class="form-select" [(ngModel)]="editData.language">
+              @for (lang of availableLanguages; track lang.value) {
+                <option [value]="lang.value">{{ lang.label }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Description</label>
+            <textarea class="form-input" [(ngModel)]="editData.description" rows="3"></textarea>
+          </div>
+
+          <div class="modal-actions">
+            <button class="form-btn secondary pressable" (click)="closeEditModal()" [disabled]="isSavingMetadata()">Cancel</button>
+            <button class="form-btn primary pressable" (click)="saveEditModal()" [disabled]="isSavingMetadata()">
+              {{ isSavingMetadata() ? 'Saving...' : 'Save' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
   `,
   styles: [`
     :host {
@@ -755,6 +799,86 @@ import {languageColor} from '../../app/language-color';
       font-size: 11px;
       text-decoration: underline;
     }
+
+    /* Context Menu */
+    .context-menu {
+      position: fixed;
+      background: var(--bg-menu, #2a2a2a);
+      border: 1px solid var(--border-light, #444);
+      border-radius: 6px;
+      padding: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 1000;
+      min-width: 140px;
+    }
+
+    .context-menu-item {
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: none;
+      color: var(--text-primary, #eee);
+      padding: 6px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .context-menu-item:hover {
+      background: var(--accent-primary, #d4af37);
+      color: #000;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(2px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    .modal-content {
+      background: var(--bg-sidebar-left, #1e1e1e);
+      border: 1px solid var(--border-light, #333);
+      border-radius: 12px;
+      padding: 20px;
+      width: 320px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .modal-content h3 {
+      margin: 0;
+      font-size: 16px;
+      color: var(--text-primary);
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-group label {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 8px;
+    }
   `]
 })
 export class SidebarComponent {
@@ -770,6 +894,16 @@ export class SidebarComponent {
   deletingId = signal<string | null>(null);
   renameValue: string = '';
   private isCommitting = false;
+
+  // Context Menu State
+  contextMenuVisible = signal(false);
+  contextMenuPosition = signal({ x: 0, y: 0 });
+  contextMenuSnippet = signal<Snippet | null>(null);
+
+  // Edit Modal State
+  editModalVisible = signal(false);
+  editData = { id: '', title: '', language: '', description: '' };
+  isSavingMetadata = signal(false);
 
   availableLanguages = [
     {label: 'Code Fragment', value: 'text'},
@@ -801,6 +935,64 @@ export class SidebarComponent {
     effect(() => {
       if (this.newSnippetRequested()) {
         this.toggleCreateForm();
+      }
+    });
+  }
+
+  onRightClick(event: MouseEvent, snippet: Snippet) {
+    event.preventDefault();
+    this.contextMenuSnippet.set(snippet);
+    this.contextMenuPosition.set({ x: event.clientX, y: event.clientY });
+    this.contextMenuVisible.set(true);
+
+    setTimeout(() => {
+      const close = () => {
+        this.contextMenuVisible.set(false);
+        document.removeEventListener('click', close);
+        document.removeEventListener('contextmenu', close);
+      };
+      document.addEventListener('click', close);
+      document.addEventListener('contextmenu', close);
+    });
+  }
+
+  openEditModal() {
+    this.contextMenuVisible.set(false);
+    const snippet = this.contextMenuSnippet();
+    if (snippet) {
+      this.editData = {
+        id: snippet.id,
+        title: snippet.title,
+        language: snippet.language,
+        description: snippet.description || ''
+      };
+      this.editModalVisible.set(true);
+    }
+  }
+
+  closeEditModal() {
+    this.editModalVisible.set(false);
+  }
+
+  saveEditModal() {
+    if (!this.editData.title.trim() || !this.editData.language) {
+      alert('Title and Language are required.');
+      return;
+    }
+    this.isSavingMetadata.set(true);
+    this.snippetService.updateSnippetMetadata(this.editData.id, {
+      title: this.editData.title,
+      language: this.editData.language,
+      description: this.editData.description
+    }).subscribe({
+      next: () => {
+        this.isSavingMetadata.set(false);
+        this.closeEditModal();
+      },
+      error: (err) => {
+        console.error('Failed to update metadata', err);
+        alert('Failed to update snippet metadata');
+        this.isSavingMetadata.set(false);
       }
     });
   }
