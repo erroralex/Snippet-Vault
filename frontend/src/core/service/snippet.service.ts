@@ -159,6 +159,20 @@ export class SnippetService {
     );
   }
 
+  updateSnippetMetadata(id: string, payload: { title: string, language: string, description: string }): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${id}/metadata`, payload).pipe(
+      tap(() => {
+        this.snippets.update(list =>
+          list.map(s => s.id === id ? { ...s, title: payload.title, language: payload.language, description: payload.description } : s)
+        );
+        const sel = this.selectedSnippet();
+        if (sel?.id === id) {
+          this.selectedSnippet.set({ ...sel, title: payload.title, language: payload.language, description: payload.description });
+        }
+      })
+    );
+  }
+
   deleteSnippet(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
       tap(() => {

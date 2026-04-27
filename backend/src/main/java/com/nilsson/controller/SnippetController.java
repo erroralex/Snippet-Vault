@@ -92,6 +92,14 @@ public class SnippetController {
         return ResponseEntity.ok().build();
     }
 
+    @PutMapping("/{id}/metadata")
+    public ResponseEntity<Void> updateMetadata(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateMetadataRequest req) {
+        snippetService.updateMetadata(id, req.title(), req.language(), req.description());
+        return ResponseEntity.ok().build();
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable String id) {
         snippetService.delete(id);

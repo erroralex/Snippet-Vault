@@ -100,6 +100,35 @@ public class SnippetService {
         broadcast("updated");
     }
 
+    public void updateMetadata(String id, String title, String language, String description) {
+        Snippet s = repository.findById(UUID.fromString(id)).orElseThrow();
+        String oldPath = s.getFilePath();
+        
+        s.setTitle(title);
+        s.setLanguage(language);
+        s.setDescription(description);
+        
+        String newPath = buildRelativePath(s);
+        s.setFilePath(newPath);
+        repository.save(s);
+
+        try {
+            if (oldPath != null && storage.exists(oldPath)) {
+                if (!oldPath.equals(newPath)) {
+                    storage.move(oldPath, newPath);
+                }
+            } else {
+                storage.write(newPath, s.getContent() != null ? s.getContent() : "");
+                log.info("Created missing file during updateMetadata: {}", newPath);
+            }
+        } catch (IOException e) {
+            log.error("Failed to update metadata and move/create file for snippet {}: {}", id, e.getMessage());
+            throw new UncheckedIOException("Failed to move/create snippet file on disk", e);
+        }
+        
+        broadcast("updated");
+    }
+
     public void rename(String id, String title) {
         Snippet s = repository.findById(UUID.fromString(id)).orElseThrow();
         String oldPath = s.getFilePath();
