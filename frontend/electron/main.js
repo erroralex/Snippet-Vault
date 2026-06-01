@@ -196,6 +196,8 @@ app.whenReady().then(async () => {
   let targetDataDir;
   if (isDev) {
     targetDataDir = path.join(__dirname, '..', '..', 'data');
+  } else if (process.env.PORTABLE_EXECUTABLE_DIR) {
+    targetDataDir = path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'data');
   } else {
     targetDataDir = path.join(path.dirname(process.execPath), 'data');
   }
