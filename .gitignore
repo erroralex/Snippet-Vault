@@ -20,6 +20,8 @@ __screenshots__/
 frontend/out/
 frontend/release/
 frontend/dist-electron/
+frontend/dist/
+frontend/runtime/
 
 # ── Java / Maven ───────────────────────────────────────────────
 target/

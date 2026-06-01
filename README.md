@@ -31,7 +31,7 @@ A robust, high-performance desktop code snippet manager designed for developers 
 
 Engineered for enterprise developers and privacy-conscious engineers, this application operates on a strict **Local-First** architectural pattern.
 
-* **Standalone Desktop Application:** Runs as a single `.exe` (Windows), `.AppImage` (Linux), or `.dmg` (macOS). No complex installations.
+* **Standalone Desktop Application:** Runs as a single `.exe` (Windows), `.AppImage` (Linux), or `.dmg` (macOS). No installation required — double-click and run.
 
 * **Bundled Runtime:** Includes a highly optimized, self-contained Java 21 JRE. No system-wide JDK required.
 

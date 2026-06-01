@@ -37,7 +37,7 @@ jobs:
         shell: bash
         run: echo "APP_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout -f backend/pom.xml)" >> $GITHUB_ENV
 
-      - name: Build Backend (Java HttpServer)
+      - name: Build Backend (Spring Boot)
         working-directory: ./backend
         run: mvn clean package -DskipTests
 
@@ -46,9 +46,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: |
-            electron/package-lock.json
-            frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install Frontend Dependencies
         working-directory: ./frontend
@@ -58,19 +56,8 @@ jobs:
         working-directory: ./frontend
         run: npm run build
 
-      - name: Install Electron Dependencies
-        working-directory: ./electron
-        run: npm ci
-
-      # --- VERSIONING: Inject Maven version into Electron ---
-      # Sync version for Electron
-      - name: Sync Electron version
-        working-directory: ./electron
-        shell: bash
-        run: npm version ${{ env.APP_VERSION }} --no-git-tag-version --allow-same-version
-
-      # Sync version for Frontend
-      - name: Sync Frontend version
+      # --- VERSIONING: Inject Maven version into Frontend/Electron ---
+      - name: Sync Frontend/Electron version
         working-directory: ./frontend
         shell: bash
         run: npm version ${{ env.APP_VERSION }} --no-git-tag-version --allow-same-version
@@ -82,22 +69,21 @@ jobs:
         run: |
           "$JAVA_HOME/bin/jlink" \
             --add-modules java.se,jdk.httpserver,jdk.crypto.ec,jdk.unsupported,java.naming,java.desktop,java.management,java.security.jgss,java.instrument,java.sql,jdk.naming.rmi \
-            --output electron/runtime \
+            --output frontend/runtime \
             --strip-debug \
             --no-man-pages \
             --no-header-files \
-            --compress=2
+            --compress=zip-6
 
-      # 2. THEN prepare the app folder inside the newly created runtime directory
+      # 2. Copy the backend JAR into the bundled runtime directory
       - name: Prepare Runtime Directory
         shell: bash
         run: |
-          mkdir -p electron/runtime/app
-          # Copy the exact jar name specified in pom.xml finalName
-          cp backend/target/backend.jar electron/runtime/app/backend.jar      
+          mkdir -p frontend/runtime/app
+          cp backend/target/backend.jar frontend/runtime/app/backend.jar
 
       - name: Build Electron App
-        working-directory: ./electron
+        working-directory: ./frontend
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Uncomment and add to repository secrets if distributing for macOS
@@ -110,7 +96,9 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
         with:
+          body_path: CHANGELOG.md
+          generate_release_notes: false
           files: |
-            electron/dist/*.exe
-            electron/dist/*.AppImage
-            electron/dist/*.dmg
+            frontend/dist/*.exe
+            frontend/dist/*.AppImage
+            frontend/dist/*.dmg

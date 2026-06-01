@@ -17,7 +17,7 @@
  * and ensuring the bundled Java backend is running and properly terminated.
  * ──────────────────────────────────────────────
  */
-const {app, BrowserWindow, ipcMain} = require('electron');
+const {app, BrowserWindow, ipcMain, dialog} = require('electron');
 const http = require('http');
 const path = require('path');
 const { spawn } = require('child_process');
@@ -218,7 +218,7 @@ app.whenReady().then(async () => {
     BACKEND_HEALTH_URL = `http://localhost:${dynamicPort}/actuator/health`;
     SHUTDOWN_URL = `http://localhost:${dynamicPort}/actuator/shutdown`;
 
-    const dataDirArg = `--snippetvault.data-dir="${targetDataDir}"`;
+    const dataDirArg = `--snippetvault.data-dir=${targetDataDir}`;
 
     javaProcess = spawn(javaExePath, [
       '-jar', jarPath,
@@ -291,10 +291,19 @@ app.whenReady().then(async () => {
 
   } catch (err) {
     console.error("Backend startup error:", err);
+    // Show a native OS error dialog so the failure is impossible to miss
+    dialog.showErrorBox(
+      'Snippet Vault — Startup Failed',
+      'The backend server did not start within the timeout.\n\n' +
+      'Possible causes:\n' +
+      '  • Another instance of Snippet Vault is already running\n' +
+      '  • The bundled Java runtime is missing or corrupt\n\n' +
+      'Detail: ' + err.message
+    );
     await splash.webContents.executeJavaScript(`
       const statusElement = document.querySelector(".subtitle");
       if (statusElement) {
-          statusElement.textContent = "Backend failed to start. Check IntelliJ.";
+          statusElement.textContent = "Backend failed to start.";
       }
       const loaderElement = document.querySelector(".loader");
       if (loaderElement) {
