@@ -32,4 +32,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   platform: process.platform,
+  backendPort: (() => {
+    const portArg = process.argv.find(arg => arg.startsWith('--backend-port='));
+    return portArg ? portArg.split('=')[1] : '8080';
+  })(),
 });
