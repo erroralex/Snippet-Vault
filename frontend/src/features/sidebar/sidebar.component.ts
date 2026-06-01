@@ -1,8 +1,9 @@
-import {Component, inject, signal, input, effect} from '@angular/core';
+import {Component, inject, signal, input, effect, computed} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {SnippetService, Snippet} from '../../core/service/snippet.service';
 import {FormsModule} from '@angular/forms';
 import {languageColor} from '../../app/language-color';
+import {FolderService} from '../../app/folder.service';
 
 /**
  * ──────────────────────────────────────────────
@@ -30,7 +31,7 @@ import {languageColor} from '../../app/language-color';
 
       <div class="sidebar-search">
         <div class="search-input-wrap">
-          <span class="search-icon">⌕</span>
+          <span class="search-icon"><i class="pi pi-search"></i></span>
           <input
             type="text"
             placeholder="Search…"
@@ -39,7 +40,7 @@ import {languageColor} from '../../app/language-color';
             (ngModelChange)="snippetService.searchQuery.set($event)"
           />
           @if (snippetService.searchQuery()) {
-            <button class="clear-btn pressable" (click)="snippetService.searchQuery.set('')">✕</button>
+            <button class="clear-btn pressable" (click)="snippetService.searchQuery.set('')"><i class="pi pi-times"></i></button>
           }
         </div>
       </div>
@@ -51,38 +52,94 @@ import {languageColor} from '../../app/language-color';
           [class.active]="snippetService.showFavoritesOnly()"
           (click)="snippetService.showFavoritesOnly.update(v => !v)"
           title="Show favorites only">
-          {{ snippetService.showFavoritesOnly() ? '★' : '☆' }}
+          <i class="pi" [class.pi-star-fill]="snippetService.showFavoritesOnly()" [class.pi-star]="!snippetService.showFavoritesOnly()"></i>
         </button>
 
-        <div class="chip-scroll">
+        <div class="tag-filter-container">
           <button
-            class="chip pressable"
-            [class.active]="snippetService.activeLanguageFilter() === null"
-            (click)="snippetService.activeLanguageFilter.set(null)">
-            All
+            class="tag-filter-btn pressable"
+            [class.active]="!!snippetService.activeTagFilter()"
+            (click)="toggleTagDropdown($event)"
+            title="Filter by tag">
+            <span class="icon"><i class="pi pi-tag"></i></span>
+            @if (snippetService.activeTagFilter()) {
+              <span class="active-tag-name">{{ snippetService.activeTagFilter() }}</span>
+            }
           </button>
-          @for (lang of snippetService.availableLanguages(); track lang) {
-            <button
-              class="chip pressable"
-              [class.active]="snippetService.activeLanguageFilter() === lang"
-              [style.--chip-color]="langColor(lang)"
-              (click)="toggleLanguageFilter(lang)">
-              {{ lang }}
-            </button>
+
+          @if (tagDropdownOpen()) {
+            <div class="tag-dropdown-menu appear" (click)="$event.stopPropagation()">
+              <button
+                class="tag-dropdown-item pressable"
+                [class.active]="snippetService.activeTagFilter() === null"
+                (click)="selectTagFilter(null)">
+                All Tags
+              </button>
+              <div class="dropdown-divider"></div>
+              @if (allTags().length === 0) {
+                <div class="dropdown-empty">No tags found</div>
+              } @else {
+                @for (tag of allTags(); track tag) {
+                  <button
+                    class="tag-dropdown-item pressable"
+                    [class.active]="snippetService.activeTagFilter() === tag"
+                    (click)="selectTagFilter(tag)">
+                    <span class="tag-dot" [style.background-color]="tagColor(tag)"></span>
+                    {{ tag }}
+                  </button>
+                }
+              }
+            </div>
+          }
+        </div>
+
+        <div class="lang-filter-container">
+          <button
+            class="lang-filter-btn pressable"
+            [class.active]="snippetService.activeLanguageFilter() !== null"
+            (click)="toggleLangDropdown($event)"
+            title="Filter by language">
+            <span class="icon"><i class="pi pi-code"></i></span>
+            @if (snippetService.activeLanguageFilter()) {
+              <span class="btn-text">{{ getLanguageLabel(snippetService.activeLanguageFilter()) }}</span>
+            }
+          </button>
+
+          @if (langDropdownOpen()) {
+            <div class="lang-dropdown-menu appear" (click)="$event.stopPropagation()">
+              <button
+                class="lang-dropdown-item pressable"
+                [class.active]="snippetService.activeLanguageFilter() === null"
+                (click)="selectLanguageFilter(null)">
+                All Languages
+              </button>
+              <div class="dropdown-divider"></div>
+              @if (snippetService.availableLanguages().length === 0) {
+                <div class="dropdown-empty">No languages found</div>
+              } @else {
+                @for (lang of snippetService.availableLanguages(); track lang) {
+                  <button
+                    class="lang-dropdown-item pressable"
+                    [class.active]="snippetService.activeLanguageFilter() === lang"
+                    (click)="selectLanguageFilter(lang)">
+                    <span class="lang-dot" [style.background-color]="langColor(lang)"></span>
+                    {{ getLanguageLabel(lang) }}
+                  </button>
+                }
+              }
+            </div>
           }
         </div>
       </div>
 
-      @if (snippetService.activeTagFilter()) {
-        <div class="tag-filter-active">
-          <span>Tag: {{ snippetService.activeTagFilter() }}</span>
-          <button class="pressable" (click)="snippetService.activeTagFilter.set(null)">✕</button>
-        </div>
-      }
-
-      <button class="new-btn pressable" (click)="toggleCreateForm()">
-        + New snippet
-      </button>
+      <div class="sidebar-action-bar">
+        <button class="new-btn pressable" (click)="toggleCreateForm()">
+          + New snippet
+        </button>
+        <button class="backup-btn pressable" (click)="exportVault()" title="Backup entire vault to ZIP">
+          <i class="pi pi-box"></i> Backup
+        </button>
+      </div>
 
       @if (showCreateForm()) {
         <div class="create-form appear">
@@ -166,13 +223,13 @@ import {languageColor} from '../../app/language-color';
                 [class.starred]="snippet.favorite"
                 (click)="toggleFavorite(snippet)"
                 [title]="snippet.favorite ? 'Remove from favorites' : 'Add to favorites'">
-                {{ snippet.favorite ? '★' : '☆' }}
+                <i class="pi" [class.pi-star-fill]="snippet.favorite" [class.pi-star]="!snippet.favorite"></i>
               </button>
               <button class="action-btn pressable" (click)="startRename(snippet)" title="Rename">
-                ✎
+                <i class="pi pi-pencil"></i>
               </button>
               <button class="action-btn danger pressable" (click)="initiateDelete(snippet.id)" title="Delete">
-                ✕
+                <i class="pi pi-times"></i>
               </button>
             </div>
 
@@ -196,13 +253,19 @@ import {languageColor} from '../../app/language-color';
           </li>
         }
       </ul>
+      <div class="sidebar-footer">
+        <span class="version-label">v1.1.0</span>
+        <button class="settings-btn pressable" (click)="openSettings()" title="Application Settings">
+          <i class="pi pi-cog"></i> Settings
+        </button>
+      </div>
     </div>
 
     <!-- Context Menu -->
     @if (contextMenuVisible()) {
       <div class="context-menu" [style.left.px]="contextMenuPosition().x" [style.top.px]="contextMenuPosition().y" (click)="$event.stopPropagation()">
         <button class="context-menu-item pressable" (click)="openEditModal()">
-          <span class="icon">✎</span> Edit Metadata
+          <span class="icon"><i class="pi pi-pencil"></i></span> Edit Metadata
         </button>
       </div>
     }
@@ -237,6 +300,95 @@ import {languageColor} from '../../app/language-color';
             <button class="form-btn primary pressable" (click)="saveEditModal()" [disabled]="isSavingMetadata()">
               {{ isSavingMetadata() ? 'Saving...' : 'Save' }}
             </button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Settings Modal -->
+    @if (settingsModalVisible()) {
+      <div class="modal-backdrop" (click)="closeSettings()">
+        <div class="modal-content settings-modal" (click)="$event.stopPropagation()">
+          <h3>Application Settings</h3>
+          <p class="settings-desc">Configure your Snippet Vault workspace preferences.</p>
+
+          <div class="settings-section">
+            <span class="settings-sec-title">Appearance & Scale</span>
+            <div class="setting-row">
+              <span class="setting-label">UI Scaling (Zoom)</span>
+              <div class="zoom-controls">
+                <button class="zoom-btn pressable" (click)="zoomOut()" title="Zoom Out">-</button>
+                <span class="zoom-value">{{ currentZoomPercent() }}%</span>
+                <button class="zoom-btn pressable" (click)="zoomIn()" title="Zoom In">+</button>
+                <button class="zoom-reset-btn pressable" (click)="resetZoom()">Reset</button>
+              </div>
+            </div>
+            <div class="setting-row" style="margin-top: 8px;">
+              <span class="setting-label">Application Theme</span>
+              <select
+                class="form-select"
+                style="max-width: 180px; padding: 4px 8px; font-size: 11px; height: 26px; border-bottom: 1px solid var(--border-input); border-radius: 4px; background: var(--bg-input); color: var(--text-primary);"
+                [ngModel]="snippetService.activeTheme()"
+                (ngModelChange)="snippetService.activeTheme.set($event)">
+                <option value="dark">Coder Dark (WCAG AA+)</option>
+                <option value="light">Coder Light (WCAG AA+)</option>
+              </select>
+            </div>
+            <div class="setting-row" style="margin-top: 8px;">
+              <span class="setting-label">Editor Theme</span>
+              <select
+                class="form-select"
+                style="max-width: 180px; padding: 4px 8px; font-size: 11px; height: 26px; border-bottom: 1px solid var(--border-input); border-radius: 4px; background: var(--bg-input); color: var(--text-primary);"
+                [ngModel]="snippetService.activeEditorTheme()"
+                (ngModelChange)="snippetService.activeEditorTheme.set($event)">
+                <option value="intellij-dark">IntelliJ Islands Dark</option>
+                <option value="intellij-light">IntelliJ Classic Light</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <span class="settings-sec-title">Workspace Data</span>
+            <div class="setting-row flex-col">
+              <span class="setting-label-sub">Snippet Vault stores database records and physical snippet files locally on your system.</span>
+              <button class="action-btn-settings pressable" (click)="openDataFolder()">
+                <i class="pi pi-folder-open"></i> Open Storage Folder
+              </button>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <span class="settings-sec-title">System Stats & Info</span>
+            <div class="stats-grid">
+              <div class="stats-item">
+                <span class="stat-val">{{ snippetService.snippets().length }}</span>
+                <span class="stat-lbl">Snippets</span>
+              </div>
+              <div class="stats-item">
+                <span class="stat-val">{{ folderService.folders().length }}</span>
+                <span class="stat-lbl">Folders</span>
+              </div>
+            </div>
+            <div class="info-row" style="margin-top: 4px;">
+              <span class="info-lbl">App Theme:</span>
+              <span class="info-val text-success">
+                {{ snippetService.activeTheme() === 'dark' ? 'Coder Dark' : 'Coder Light' }}
+              </span>
+            </div>
+            <div class="info-row">
+              <span class="info-lbl">Editor Theme:</span>
+              <span class="info-val text-success">
+                {{ snippetService.activeEditorTheme() === 'intellij-dark' ? 'IntelliJ Islands Dark' : 'IntelliJ Classic Light' }}
+              </span>
+            </div>
+            <div class="info-row">
+              <span class="info-lbl">Database:</span>
+              <span class="info-val filepath" title="SQLite database & code fragments directory">data/snippet-vault.db</span>
+            </div>
+          </div>
+
+          <div class="modal-actions" style="margin-top: 8px;">
+            <button class="form-btn primary pressable" (click)="closeSettings()">Done</button>
           </div>
         </div>
       </div>
@@ -354,97 +506,226 @@ import {languageColor} from '../../app/language-color';
       }
     }
 
-    .chip-scroll {
-      display: flex;
-      gap: 4px;
-      overflow-x: auto;
-      scrollbar-width: none;
+    .tag-filter-container {
+      position: relative;
+      display: inline-block;
+      flex-shrink: 0;
+    }
 
-      &::-webkit-scrollbar {
-        display: none;
+    .tag-filter-btn {
+      background: none;
+      border: 1px solid var(--border-input);
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      height: 24px;
+      padding: 0 8px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all var(--dur-fast);
+      position: relative;
+      z-index: 1;
+
+      &:hover:not(.active) {
+        border-color: var(--accent-primary);
+        color: var(--accent-primary);
+      }
+
+      &.active {
+        color: var(--accent-secondary);
+        border-color: rgba(230, 157, 103, 0.4);
+        box-shadow: 0 0 8px rgba(230, 157, 103, 0.2);
+        background: rgba(230, 157, 103, 0.05);
+      }
+
+      .active-tag-name {
+        max-width: 80px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 500;
       }
     }
 
-    .chip {
-      font-size: 10px;
-      padding: 2px 9px;
-      border-radius: 99px;
-      cursor: pointer;
-      white-space: nowrap;
-      flex-shrink: 0;
-      background: transparent;
-      color: var(--text-secondary);
-      border: 1px solid var(--border-input);
-      position: relative;
-      z-index: 1;
-      transition: color var(--dur-fast);
+    .tag-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      background: var(--bg-menu);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 4px;
+      min-width: 140px;
+      max-width: 200px;
+      max-height: 250px;
+      overflow-y: auto;
+      z-index: 999;
+      box-shadow: var(--shadow-panel);
+    }
 
-      &::before {
-        content: '';
-        position: absolute;
-        inset: -1px;
-        background: var(--grad-hover);
-        border-radius: 99px;
-        z-index: -2;
-        opacity: 0;
-        filter: blur(3px);
-        transition: opacity 0.3s;
+    .tag-dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      padding: 6px 8px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 11px;
+      text-align: left;
+      cursor: pointer;
+      border-radius: 4px;
+      font-family: inherit;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background var(--dur-fast), color var(--dur-fast);
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-primary);
       }
 
-      &::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        background: transparent;
-        border-radius: 99px;
-        z-index: -1;
-        transition: background 0.3s;
+      &.active {
+        background: rgba(230, 157, 103, 0.08);
+        color: var(--accent-secondary);
+        font-weight: 500;
+      }
+    }
+
+    .tag-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-secondary);
+      flex-shrink: 0;
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background: var(--border-light);
+      margin: 4px 0;
+    }
+
+    .dropdown-empty {
+      padding: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .lang-filter-container {
+      position: relative;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .lang-filter-btn {
+      background: none;
+      border: 1px solid var(--border-input);
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      height: 24px;
+      padding: 0 8px;
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all var(--dur-fast);
+      position: relative;
+      z-index: 1;
+
+      &:hover:not(.active) {
+        border-color: var(--accent-primary);
+        color: var(--accent-primary);
       }
 
       &.active {
         color: var(--accent-primary);
-
-        &::before {
-          opacity: 0.7;
-        }
-
-        &::after {
-          background: var(--bg-btn-inner);
-        }
+        border-color: rgba(230, 157, 103, 0.4);
+        box-shadow: 0 0 8px rgba(230, 157, 103, 0.2);
+        background: rgba(230, 157, 103, 0.05);
       }
 
-      &:hover:not(.active) {
-        color: var(--text-primary);
+      .btn-text {
+        max-width: 90px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 500;
       }
     }
 
-    .tag-filter-active {
+    .lang-dropdown-menu {
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      background: var(--bg-menu);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border-light);
+      border-radius: 8px;
+      padding: 4px;
+      min-width: 140px;
+      max-width: 200px;
+      max-height: 250px;
+      overflow-y: auto;
+      z-index: 999;
+      box-shadow: var(--shadow-panel);
+    }
+
+    .lang-dropdown-item {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 4px 10px;
-      border-bottom: 1px solid var(--border-light);
+      gap: 6px;
+      width: 100%;
+      padding: 6px 8px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
       font-size: 11px;
-      color: var(--accent-secondary);
-      flex-shrink: 0;
-      background: rgba(212, 175, 55, 0.06);
+      text-align: left;
+      cursor: pointer;
+      border-radius: 4px;
+      font-family: inherit;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: background var(--dur-fast), color var(--dur-fast);
 
-      button {
-        background: none;
-        border: none;
-        color: var(--accent-secondary);
-        cursor: pointer;
-
-        &:hover {
-          color: var(--accent-primary);
-        }
+      &:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--text-primary);
       }
+
+      &.active {
+        background: rgba(230, 157, 103, 0.08);
+        color: var(--accent-primary);
+        font-weight: 500;
+      }
+    }
+
+    .lang-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .sidebar-action-bar {
+      display: flex;
+      gap: 6px;
+      margin: 8px 10px 4px;
+      flex-shrink: 0;
     }
 
     .new-btn {
-      margin: 8px 10px 4px;
+      flex: 1;
       padding: 7px;
-      flex-shrink: 0;
       border: 1px dashed var(--border-input);
       border-radius: 8px;
       background: transparent;
@@ -454,6 +735,58 @@ import {languageColor} from '../../app/language-color';
       position: relative;
       z-index: 1;
       transition: color var(--dur-fast);
+
+      &::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        background: var(--grad-hover);
+        border-radius: 9px;
+        z-index: -2;
+        opacity: 0;
+        filter: blur(4px);
+        transition: opacity 0.3s;
+      }
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: transparent;
+        border-radius: 8px;
+        z-index: -1;
+        transition: background 0.3s;
+      }
+
+      &:hover {
+        color: var(--accent-primary);
+      }
+
+      &:hover::before {
+        opacity: 0.5;
+      }
+
+      &:hover::after {
+        background: var(--bg-btn-inner);
+      }
+    }
+
+    .backup-btn {
+      flex: 0.8;
+      padding: 7px;
+      border: 1px dashed var(--border-input);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 12px;
+      cursor: pointer;
+      position: relative;
+      z-index: 1;
+      transition: color var(--dur-fast);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
 
       &::before {
         content: '';
@@ -537,6 +870,7 @@ import {languageColor} from '../../app/language-color';
         background: transparent;
         border: none;
         color: var(--accent-primary);
+        transition: color var(--dur-fast);
 
         &::before {
           content: '';
@@ -545,8 +879,9 @@ import {languageColor} from '../../app/language-color';
           background: var(--grad-hover);
           border-radius: 9px;
           z-index: -2;
+          opacity: 0;
           filter: blur(4px);
-          opacity: 0.7;
+          transition: opacity var(--dur-fast);
         }
 
         &::after {
@@ -554,8 +889,23 @@ import {languageColor} from '../../app/language-color';
           position: absolute;
           inset: 0;
           background: var(--bg-btn-inner);
+          border: 1px solid var(--border-input);
           border-radius: 8px;
           z-index: -1;
+          transition: background var(--dur-fast), border-color var(--dur-fast);
+        }
+
+        &:hover {
+          color: #ffffff;
+        }
+
+        &:hover::before {
+          opacity: 0.5;
+        }
+
+        &:hover::after {
+          background: var(--accent-primary);
+          border-color: transparent;
         }
       }
 
@@ -879,10 +1229,287 @@ import {languageColor} from '../../app/language-color';
       gap: 8px;
       margin-top: 8px;
     }
+
+    .sidebar-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      border-top: 1px solid var(--border-light);
+      background: rgba(0, 0, 0, 0.2);
+      flex-shrink: 0;
+    }
+
+    .version-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    .settings-btn {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: color var(--dur-fast);
+
+      &:hover {
+        color: var(--accent-primary);
+      }
+    }
+
+    .settings-modal {
+      width: 440px !important;
+    }
+
+    .settings-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .settings-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px 0;
+      border-top: 1px solid var(--border-light);
+    }
+
+    .settings-sec-title {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent-primary);
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12px;
+
+      &.flex-col {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+    }
+
+    .setting-label {
+      color: var(--text-secondary);
+    }
+
+    .setting-label-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .zoom-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .zoom-btn {
+      width: 26px;
+      height: 24px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-input);
+      border-radius: 6px;
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 700;
+      transition: all var(--dur-fast);
+
+      &:hover {
+        border-color: var(--accent-primary);
+        color: var(--accent-primary);
+      }
+    }
+
+    .zoom-value {
+      min-width: 38px;
+      text-align: center;
+      font-size: 12px;
+      font-family: monospace;
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .zoom-reset-btn {
+      padding: 3px 8px;
+      font-size: 10px;
+      background: transparent;
+      border: 1px solid var(--border-input);
+      border-radius: 6px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--dur-fast);
+
+      &:hover {
+        border-color: var(--accent-primary);
+        color: var(--accent-primary);
+      }
+    }
+
+    .action-btn-settings {
+      width: 100%;
+      padding: 7px 10px;
+      font-size: 11px;
+      background: transparent;
+      border: 1px dashed var(--border-input);
+      border-radius: 8px;
+      color: var(--accent-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-weight: 600;
+      position: relative;
+      z-index: 1;
+      transition: color var(--dur-fast), border-color var(--dur-fast);
+
+      &::before {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        background: var(--grad-hover);
+        border-radius: 9px;
+        z-index: -2;
+        opacity: 0;
+        filter: blur(4px);
+        transition: opacity var(--dur-fast);
+      }
+
+      &::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: transparent;
+        border-radius: 8px;
+        z-index: -1;
+        transition: background var(--dur-fast);
+      }
+
+      &:hover {
+        color: var(--text-primary);
+        border-color: transparent;
+      }
+
+      &:hover::before {
+        opacity: 0.5;
+      }
+
+      &:hover::after {
+        background: var(--bg-btn-inner);
+      }
+    }
+
+    .stats-grid {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .stats-item {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--border-input);
+      border-radius: 8px;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .stat-val {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent-primary);
+      font-family: monospace;
+    }
+
+    .stat-lbl {
+      font-size: 9px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .info-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .info-lbl {
+      color: var(--text-muted);
+    }
+
+    .info-val {
+      color: var(--text-secondary);
+
+      &.text-success {
+        color: var(--status-success);
+        font-weight: 600;
+      }
+
+      &.filepath {
+        font-family: monospace;
+        background: var(--bg-input);
+        padding: 1px 4px;
+        border-radius: 4px;
+        font-size: 10px;
+      }
+    }
   `]
 })
 export class SidebarComponent {
   snippetService = inject(SnippetService);
+  folderService = inject(FolderService);
+
+  // Settings Modal State
+  settingsModalVisible = signal(false);
+  currentZoomPercent = signal(100);
+
+  // Tag Dropdown State
+  tagDropdownOpen = signal(false);
+
+  // Language Dropdown State
+  langDropdownOpen = signal(false);
+
+  allTags = computed(() => {
+    const set = new Set<string>();
+    for (const s of this.snippetService.snippets()) {
+      if (s.tags) {
+        for (const t of s.tags) {
+          if (t.trim()) set.add(t.trim());
+        }
+      }
+    }
+    return Array.from(set).sort();
+  });
+
+  private get electronAPI(): any {
+    return (window as any).electronAPI;
+  }
 
   newSnippetRequested = input(false);
 
@@ -937,6 +1564,69 @@ export class SidebarComponent {
         this.toggleCreateForm();
       }
     });
+
+    if (this.electronAPI) {
+      this.electronAPI.getZoom().then((level: number) => {
+        this.updateZoomPercent(level);
+      });
+    }
+  }
+
+  openSettings(): void {
+    this.settingsModalVisible.set(true);
+    if (this.electronAPI) {
+      this.electronAPI.getZoom().then((level: number) => {
+        this.updateZoomPercent(level);
+      });
+    }
+  }
+
+  closeSettings(): void {
+    this.settingsModalVisible.set(false);
+  }
+
+  zoomIn(): void {
+    if (this.electronAPI) {
+      this.electronAPI.zoomIn().then((level: number) => this.updateZoomPercent(level));
+    } else {
+      const current = this.currentZoomPercent();
+      const next = Math.min(current + 10, 150);
+      this.currentZoomPercent.set(next);
+      document.body.style.zoom = String(next / 100);
+    }
+  }
+
+  zoomOut(): void {
+    if (this.electronAPI) {
+      this.electronAPI.zoomOut().then((level: number) => this.updateZoomPercent(level));
+    } else {
+      const current = this.currentZoomPercent();
+      const next = Math.max(current - 10, 70);
+      this.currentZoomPercent.set(next);
+      document.body.style.zoom = String(next / 100);
+    }
+  }
+
+  resetZoom(): void {
+    if (this.electronAPI) {
+      this.electronAPI.resetZoom().then((level: number) => this.updateZoomPercent(level));
+    } else {
+      this.currentZoomPercent.set(100);
+      document.body.style.zoom = '1';
+    }
+  }
+
+  private updateZoomPercent(level: number): void {
+    const pct = Math.round(Math.pow(1.2, level) * 100);
+    this.currentZoomPercent.set(pct);
+  }
+
+  openDataFolder(): void {
+    if (this.electronAPI) {
+      this.electronAPI.openDataFolder();
+    } else {
+      alert('Local storage directory can only be opened when running inside the desktop app.');
+    }
   }
 
   onRightClick(event: MouseEvent, snippet: Snippet) {
@@ -972,6 +1662,10 @@ export class SidebarComponent {
 
   closeEditModal() {
     this.editModalVisible.set(false);
+  }
+
+  exportVault(): void {
+    window.location.href = 'http://localhost:8080/api/vault/export';
   }
 
   saveEditModal() {
@@ -1169,6 +1863,107 @@ export class SidebarComponent {
     this.snippetService.activeTagFilter.set(
       this.snippetService.activeTagFilter() === tag ? null : tag
     );
+  }
+
+  private activeTagCloseHandler: ((e: MouseEvent | KeyboardEvent) => void) | null = null;
+  private activeLangCloseHandler: ((e: MouseEvent | KeyboardEvent) => void) | null = null;
+
+  closeTagDropdown(): void {
+    this.tagDropdownOpen.set(false);
+    if (this.activeTagCloseHandler) {
+      document.removeEventListener('click', this.activeTagCloseHandler);
+      document.removeEventListener('keydown', this.activeTagCloseHandler);
+      this.activeTagCloseHandler = null;
+    }
+  }
+
+  closeLangDropdown(): void {
+    this.langDropdownOpen.set(false);
+    if (this.activeLangCloseHandler) {
+      document.removeEventListener('click', this.activeLangCloseHandler);
+      document.removeEventListener('keydown', this.activeLangCloseHandler);
+      this.activeLangCloseHandler = null;
+    }
+  }
+
+  toggleTagDropdown(event: MouseEvent): void {
+    event.stopPropagation();
+    const open = !this.tagDropdownOpen();
+    if (!open) {
+      this.closeTagDropdown();
+      return;
+    }
+
+    this.tagDropdownOpen.set(true);
+
+    if (this.activeTagCloseHandler) {
+      document.removeEventListener('click', this.activeTagCloseHandler);
+      document.removeEventListener('keydown', this.activeTagCloseHandler);
+      this.activeTagCloseHandler = null;
+    }
+
+    setTimeout(() => {
+      const close = (e: MouseEvent | KeyboardEvent) => {
+        if (e instanceof KeyboardEvent && e.key !== 'Escape') return;
+        this.closeTagDropdown();
+      };
+      this.activeTagCloseHandler = close;
+      document.addEventListener('click', close);
+      document.addEventListener('keydown', close);
+    });
+  }
+
+  selectTagFilter(tag: string | null): void {
+    this.snippetService.activeTagFilter.set(tag);
+    this.closeTagDropdown();
+  }
+
+  toggleLangDropdown(event: MouseEvent): void {
+    event.stopPropagation();
+    const open = !this.langDropdownOpen();
+    if (!open) {
+      this.closeLangDropdown();
+      return;
+    }
+
+    this.langDropdownOpen.set(true);
+
+    if (this.activeLangCloseHandler) {
+      document.removeEventListener('click', this.activeLangCloseHandler);
+      document.removeEventListener('keydown', this.activeLangCloseHandler);
+      this.activeLangCloseHandler = null;
+    }
+
+    setTimeout(() => {
+      const close = (e: MouseEvent | KeyboardEvent) => {
+        if (e instanceof KeyboardEvent && e.key !== 'Escape') return;
+        this.closeLangDropdown();
+      };
+      this.activeLangCloseHandler = close;
+      document.addEventListener('click', close);
+      document.addEventListener('keydown', close);
+    });
+  }
+
+  selectLanguageFilter(lang: string | null): void {
+    this.snippetService.activeLanguageFilter.set(lang);
+    this.closeLangDropdown();
+  }
+
+  getLanguageLabel(langValue: string | null): string | null {
+    if (!langValue) return null;
+    const found = this.availableLanguages.find(l => l.value === langValue);
+    return found ? found.label : langValue;
+  }
+
+  tagColor(tag: string): string {
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) {
+      hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const hues = [25, 45, 140, 195, 220, 270, 310, 340];
+    const hue = hues[Math.abs(hash) % hues.length];
+    return `hsl(${hue}, 80%, 65%)`;
   }
 
   toggleLanguageFilter(lang: string): void {

@@ -1,3 +1,4 @@
 package com.nilsson.dto;
 
-public record UpdateDescriptionRequest(String description) {}
+public record UpdateDescriptionRequest(String description) {
+}

@@ -12,12 +12,15 @@ html, body {
   background-image: var(--bg-app-image);
   background-attachment: fixed;
   color: var(--text-primary);
-  font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font-family-body, 'Inter', 'Segoe UI', system-ui, sans-serif);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, p { margin-top: 0; }
+h1, h2, h3, h4 {
+  font-family: var(--font-family-header, 'Inter', 'Segoe UI', system-ui, sans-serif);
+}
 
 // ── Text utilities ────────────────────────────────────────────────────────
 .text-gradient {

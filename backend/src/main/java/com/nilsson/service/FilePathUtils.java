@@ -65,9 +65,9 @@ public final class FilePathUtils {
                 .substring(0, Math.min(title.length(), 80));
     }
 
-    public static String relativePathFor(String folderName, String language, String title) {
-        String dir = (folderName != null && !folderName.isBlank())
-                ? sanitiseTitle(folderName) + "/" + (language == null ? "txt" : language.toLowerCase())
+    public static String relativePathFor(String folderPath, String language, String title) {
+        String dir = (folderPath != null && !folderPath.isBlank())
+                ? folderPath + "/" + (language == null ? "txt" : language.toLowerCase())
                 : (language == null ? "txt" : language.toLowerCase());
         String filename = sanitiseTitle(title) + "." + extensionFor(language);
         return dir + "/" + filename;

@@ -47,19 +47,47 @@ public class SnippetService {
     private final LocalFileSystemStorage storage;
     private final FolderRepository folderRepository;
 
-    private String buildRelativePath(Snippet snippet) {
-        String folderName = null;
-        if (snippet.getFolderId() != null && !snippet.getFolderId().isBlank()) {
-            folderName = folderRepository.findById(snippet.getFolderId())
-                    .map(Folder::getName)
-                    .orElse(null);
+    private String buildFolderPath(String folderId) {
+        if (folderId == null || folderId.isBlank()) {
+            return "";
         }
+        List<String> segments = new java.util.ArrayList<>();
+        String currentId = folderId;
+        while (currentId != null && !currentId.isBlank()) {
+            Folder f = folderRepository.findById(currentId).orElse(null);
+            if (f == null) break;
+            segments.add(0, FilePathUtils.sanitiseTitle(f.getName()));
+            currentId = f.getParentId();
+        }
+        return String.join("/", segments);
+    }
+
+    private String buildRelativePath(Snippet snippet) {
+        String folderPath = buildFolderPath(snippet.getFolderId());
         return FilePathUtils.relativePathFor(
-                folderName, snippet.getLanguage(), snippet.getTitle());
+                folderPath, snippet.getLanguage(), snippet.getTitle());
+    }
+
+    public String getUniqueFilePath(String relativePath) {
+        if (!storage.exists(relativePath)) {
+            return relativePath;
+        }
+        int dotIndex = relativePath.lastIndexOf('.');
+        String base = dotIndex == -1 ? relativePath : relativePath.substring(0, dotIndex);
+        String ext = dotIndex == -1 ? "" : relativePath.substring(dotIndex);
+        int counter = 1;
+        while (true) {
+            String candidate = base + "_" + counter + ext;
+            if (!storage.exists(candidate)) {
+                return candidate;
+            }
+            counter++;
+        }
     }
 
     public Snippet createSnippet(String title, String language) {
         String relativePath = FilePathUtils.relativePathFor(null, language, title);
+        relativePath = getUniqueFilePath(relativePath);
 
         Snippet snippet = Snippet.builder()
                 .id(UUID.randomUUID())
@@ -109,6 +137,9 @@ public class SnippetService {
         s.setDescription(description);
         
         String newPath = buildRelativePath(s);
+        if (oldPath != null && !oldPath.equals(newPath)) {
+            newPath = getUniqueFilePath(newPath);
+        }
         s.setFilePath(newPath);
         repository.save(s);
 
@@ -134,6 +165,9 @@ public class SnippetService {
         String oldPath = s.getFilePath();
         s.setTitle(title);
         String newPath = buildRelativePath(s);
+        if (oldPath != null && !oldPath.equals(newPath)) {
+            newPath = getUniqueFilePath(newPath);
+        }
         s.setFilePath(newPath);
         repository.save(s);
 
@@ -171,12 +205,14 @@ public class SnippetService {
         Snippet s = repository.findById(UUID.fromString(id)).orElseThrow();
         s.setTags(tags);
         repository.save(s);
+        broadcast("updated");
     }
 
     public void updateDescription(String id, String description) {
         Snippet s = repository.findById(UUID.fromString(id)).orElseThrow();
         s.setDescription(description);
         repository.save(s);
+        broadcast("updated");
     }
 
     @Transactional(readOnly = true)
@@ -217,6 +253,9 @@ public class SnippetService {
                 String oldPath = s.getFilePath();
                 s.setFolderId(folderId);
                 String newPath = buildRelativePath(s);
+                if (oldPath != null && !oldPath.equals(newPath)) {
+                    newPath = getUniqueFilePath(newPath);
+                }
                 s.setFilePath(newPath);
                 repository.save(s);
                 try {
@@ -247,6 +286,7 @@ public class SnippetService {
                 .build();
         Snippet saved = repository.save(newSnippet);
         String relativePath = buildRelativePath(saved);
+        relativePath = getUniqueFilePath(relativePath);
         saved.setFilePath(relativePath);
         saved = repository.save(saved);
         
@@ -259,6 +299,16 @@ public class SnippetService {
         
         broadcast("created");
         return saved;
+    }
+
+    @Transactional(readOnly = true)
+    public List<Snippet> getAllSnippets() {
+        return repository.findAll(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "lastModified"));
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.Optional<Snippet> getSnippetById(UUID id) {
+        return repository.findById(id);
     }
 
     private void broadcast(String message) {

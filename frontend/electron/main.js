@@ -248,6 +248,29 @@ app.whenReady().then(async () => {
   });
   ipcMain.handle('window:close', () => shutdownBackendAndClose(mainWin));
   ipcMain.handle('window:isMaximized', () => mainWin.isMaximized());
+  ipcMain.handle('window:zoomIn', () => {
+    const current = mainWin.webContents.getZoomLevel();
+    const target = Math.min(current + 0.5, 3.0);
+    mainWin.webContents.setZoomLevel(target);
+    return target;
+  });
+  ipcMain.handle('window:zoomOut', () => {
+    const current = mainWin.webContents.getZoomLevel();
+    const target = Math.max(current - 0.5, -3.0);
+    mainWin.webContents.setZoomLevel(target);
+    return target;
+  });
+  ipcMain.handle('window:resetZoom', () => {
+    mainWin.webContents.setZoomLevel(0);
+    return 0;
+  });
+  ipcMain.handle('window:getZoom', () => {
+    return mainWin.webContents.getZoomLevel();
+  });
+  ipcMain.handle('vault:openFolder', () => {
+    const { shell } = require('electron');
+    shell.openPath(targetDataDir);
+  });
 
   try {
     await waitForBackend(BACKEND_TIMEOUT_MS);
@@ -262,6 +285,7 @@ app.whenReady().then(async () => {
 
     await new Promise(resolve => setTimeout(resolve, 420));
 
+    mainWin.maximize();
     mainWin.show();
     splash.destroy();
 
@@ -281,7 +305,9 @@ app.whenReady().then(async () => {
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createMainWindow().show();
+      const win = createMainWindow();
+      win.maximize();
+      win.show();
     }
   });
 });

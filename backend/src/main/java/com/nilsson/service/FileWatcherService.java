@@ -42,6 +42,7 @@ public class FileWatcherService {
     private final LocalFileSystemStorage storage;
     private final SnippetRepository snippetRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final com.nilsson.repository.FolderRepository folderRepository;
 
     private WatchService watchService;
     private final ScheduledExecutorService executor =
@@ -108,12 +109,24 @@ public class FileWatcherService {
                             () -> handleModify(relative),
                             200, TimeUnit.MILLISECONDS
                     );
-                } else if (kind == ENTRY_CREATE && Files.isDirectory(absolute)) {
-                    try {
-                        absolute.register(watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE);
-                    } catch (IOException e) {
-                        log.warn("Could not register new directory: {}", absolute, e);
+                } else if (kind == ENTRY_CREATE) {
+                    if (Files.isDirectory(absolute)) {
+                        try {
+                            absolute.register(watchService, ENTRY_CREATE, ENTRY_MODIFY, ENTRY_DELETE);
+                        } catch (IOException e) {
+                            log.warn("Could not register new directory: {}", absolute, e);
+                        }
+                    } else {
+                        executor.schedule(
+                                () -> handleCreate(relative),
+                                200, TimeUnit.MILLISECONDS
+                        );
                     }
+                } else if (kind == ENTRY_DELETE) {
+                    executor.schedule(
+                            () -> handleDelete(relative),
+                            200, TimeUnit.MILLISECONDS
+                    );
                 }
             }
 
@@ -139,5 +152,118 @@ public class FileWatcherService {
                 log.error("Failed to sync external edit for {}: {}", relativePath, e.getMessage());
             }
         });
+    }
+
+    private void handleDelete(String relativePath) {
+        snippetRepository.findByFilePath(relativePath).ifPresent(snippet -> {
+            snippetRepository.delete(snippet);
+            messagingTemplate.convertAndSend("/topic/snippets", "external-delete:" + snippet.getId());
+            log.info("Synced external delete for snippet: {}", snippet.getTitle());
+        });
+    }
+
+    private void handleCreate(String relativePath) {
+        if (snippetRepository.findByFilePath(relativePath).isEmpty()) {
+            try {
+                String content = storage.read(relativePath);
+                Path absolute = storage.resolve(relativePath);
+                String filename = absolute.getFileName().toString();
+                int dotIndex = filename.lastIndexOf('.');
+                String title = dotIndex == -1 ? filename : filename.substring(0, dotIndex);
+                String ext = dotIndex == -1 ? "" : filename.substring(dotIndex + 1);
+
+                String language = getLanguageFromExtension(ext);
+                String folderId = resolveFolderIdFromPath(absolute.getParent());
+
+                com.nilsson.model.Snippet newSnippet = com.nilsson.model.Snippet.builder()
+                        .id(java.util.UUID.randomUUID())
+                        .title(title)
+                        .language(language)
+                        .content(content != null ? content : "")
+                        .filePath(relativePath)
+                        .folderId(folderId)
+                        .lastModified(java.time.Instant.now())
+                        .build();
+
+                snippetRepository.save(newSnippet);
+                messagingTemplate.convertAndSend("/topic/snippets", "external-create:" + newSnippet.getId());
+                log.info("Synced external create for snippet: {} (lang: {})", title, language);
+            } catch (IOException e) {
+                log.error("Failed to read created file {}: {}", relativePath, e.getMessage());
+            }
+        }
+    }
+
+    private String getLanguageFromExtension(String ext) {
+        if (ext == null || ext.isBlank()) return "text";
+        return switch (ext.toLowerCase()) {
+            case "java" -> "java";
+            case "ts" -> "typescript";
+            case "js" -> "javascript";
+            case "py" -> "python";
+            case "html" -> "html";
+            case "css" -> "css";
+            case "scss" -> "scss";
+            case "sql" -> "sql";
+            case "json" -> "json";
+            case "md" -> "markdown";
+            case "kt" -> "kotlin";
+            case "rs" -> "rust";
+            case "go" -> "go";
+            case "cs" -> "csharp";
+            case "php" -> "php";
+            case "rb" -> "ruby";
+            case "swift" -> "swift";
+            case "sh" -> "bash";
+            case "dockerfile" -> "dockerfile";
+            case "yml", "yaml" -> "yaml";
+            case "xml" -> "xml";
+            default -> ext.toLowerCase();
+        };
+    }
+
+    private String resolveFolderIdFromPath(Path parentPath) {
+        if (parentPath == null) {
+            return null;
+        }
+        Path dataRoot = storage.getDataRoot();
+        if (!parentPath.startsWith(dataRoot)) {
+            return null;
+        }
+        Path relative = dataRoot.relativize(parentPath);
+        if (relative.toString().isEmpty() || relative.toString().equals(".")) {
+            return null;
+        }
+
+        java.util.List<String> folderSegments = new java.util.ArrayList<>();
+        for (int i = 0; i < relative.getNameCount() - 1; i++) {
+            folderSegments.add(relative.getName(i).toString());
+        }
+
+        if (folderSegments.isEmpty()) {
+            return null;
+        }
+
+        String parentId = null;
+        for (String segmentName : folderSegments) {
+            java.util.Optional<com.nilsson.model.Folder> folderOpt = parentId == null 
+                ? folderRepository.findByParentIdIsNullAndName(segmentName)
+                : folderRepository.findByParentIdAndName(parentId, segmentName);
+            com.nilsson.model.Folder folder = folderOpt.orElse(null);
+
+            if (folder == null) {
+                folder = folderRepository.save(
+                        com.nilsson.model.Folder.builder()
+                                .name(segmentName)
+                                .parentId(parentId)
+                                .icon("📁")
+                                .expanded(true)
+                                .build()
+                );
+                messagingTemplate.convertAndSend("/topic/folders", "updated");
+            }
+            parentId = folder.getId();
+        }
+        return parentId;
     }
 }

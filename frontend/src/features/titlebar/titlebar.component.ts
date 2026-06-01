@@ -61,7 +61,7 @@ import {SnippetService} from '../../core/service/snippet.service';
             @if (isMaximized()) {
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                 <rect x="2" y="0" width="8" height="8" stroke="currentColor" stroke-width="1"/>
-                <rect x="0" y="2" width="8" height="8" stroke="currentColor" stroke-width="1" fill="#252526"/>
+                <rect x="0" y="2" width="8" height="8" stroke="currentColor" stroke-width="1" fill="var(--bg-header)"/>
               </svg>
             } @else {
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
@@ -219,52 +219,16 @@ import {SnippetService} from '../../core/service/snippet.service';
       -webkit-app-region: no-drag;
       position: relative;
       z-index: 1;
-      transition: color var(--dur-fast);
+      transition: color var(--dur-fast), background-color var(--dur-fast);
 
-      &::before {
-        content: '';
-        position: absolute;
-        inset: -1px;
-        border-radius: 0;
-        z-index: -2;
-        opacity: 0;
-        filter: blur(4px);
-        transition: opacity 0.3s;
-      }
-
-      &::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        z-index: -1;
-        background: transparent;
-        transition: background 0.3s;
-      }
-
-      &.minimize:hover, &.maximize:hover {
-        color: var(--accent-primary);
-
-        &::before {
-          background: var(--grad-hover);
-          opacity: 0.6;
-        }
-
-        &::after {
-          background: var(--bg-btn-inner);
-        }
+      &:hover {
+        background-color: var(--border-light);
+        color: var(--text-primary);
       }
 
       &.close:hover {
-        color: var(--status-danger);
-
-        &::before {
-          background: var(--status-danger);
-          opacity: 0.6;
-        }
-
-        &::after {
-          background: var(--bg-btn-inner);
-        }
+        background-color: var(--status-danger);
+        color: #ffffff;
       }
     }
   `]

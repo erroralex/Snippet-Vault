@@ -25,6 +25,11 @@ declare global {
       isMaximized:      () => Promise<boolean>;
       onMaximizeChange: (callback: (isMaximized: boolean) => void) => () => void;
       platform:         'win32' | 'darwin' | 'linux';
+      zoomIn:           () => Promise<number>;
+      zoomOut:          () => Promise<number>;
+      resetZoom:        () => Promise<number>;
+      getZoom:          () => Promise<number>;
+      openDataFolder:   () => Promise<void>;
     };
     __ANTHROPIC_KEY__: string;
   }

@@ -39,6 +39,7 @@ public class Folder {
     @Column
     private String parentId;
 
+    @Builder.Default
     @Column(nullable = false)
     private int sortOrder = 0;
 
@@ -48,6 +49,7 @@ public class Folder {
     @Column
     private String icon;
 
+    @Builder.Default
     @Column(nullable = false)
     private boolean expanded = true;
 }

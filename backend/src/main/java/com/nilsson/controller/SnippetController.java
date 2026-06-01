@@ -14,22 +14,38 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 
 /**
  * ──────────────────────────────────────────────
  * <h2>SnippetController</h2>
  * ──────────────────────────────────────────────
- * <p><strong>Responsibility:</strong> Exposes a comprehensive REST API for the complete lifecycle management of code snippets.</p>
- * <p><strong>Functions:</strong></p>
+ * <p>
+ * <strong>Responsibility:</strong> Exposes a comprehensive REST API for the
+ * complete lifecycle management of code snippets.
+ * </p>
+ * <p>
+ * <strong>Functions:</strong>
+ * </p>
  * <ul>
- * <li>Provides standard CRUD endpoints for creating, retrieving, updating (content, metadata), and deleting snippets.</li>
- * <li>Supports advanced search functionality, filtering by text content and programming language.</li>
- * <li>Handles organizational actions such as toggling favorite status, updating tags, and managing snippet descriptions.</li>
- * <li>Provides bulk operation endpoints for reordering snippets and moving multiple snippets between folders.</li>
- * <li>Exposes endpoints for retrieving available snippet templates and instantiating new snippets based on those templates.</li>
+ * <li>Provides standard CRUD endpoints for creating, retrieving, updating
+ * (content, metadata), and deleting snippets.</li>
+ * <li>Supports advanced search functionality, filtering by text content and
+ * programming language.</li>
+ * <li>Handles organizational actions such as toggling favorite status, updating
+ * tags, and managing snippet descriptions.</li>
+ * <li>Provides bulk operation endpoints for reordering snippets and moving
+ * multiple snippets between folders.</li>
+ * <li>Exposes endpoints for retrieving available snippet templates and
+ * instantiating new snippets based on those templates.</li>
  * </ul>
- * <p><strong>Technical Role:</strong> A central Spring {@code @RestController} mapped to {@code /api/snippets}, utilizing {@code SnippetService} and {@code SnippetRepository} to process requests and return standardized JSON responses.</p>
+ * <p>
+ * <strong>Technical Role:</strong> A central Spring {@code @RestController}
+ * mapped to {@code /api/snippets}, utilizing {@code SnippetService} and
+ * {@code SnippetRepository} to process requests and return standardized JSON
+ * responses.
+ * </p>
  * ──────────────────────────────────────────────
  */
 @Slf4j
@@ -39,7 +55,6 @@ import org.springframework.web.bind.annotation.*;
 @CrossOrigin(origins = "http://localhost:4200")
 public class SnippetController {
 
-    private final SnippetRepository snippetRepository;
     private final SnippetService snippetService;
 
     public record SnippetUpdatePayload(String content) {
@@ -51,21 +66,22 @@ public class SnippetController {
     @GetMapping
     public ResponseEntity<List<Snippet>> getAllSnippets() {
         log.debug("REST request to get all Snippets");
-        List<Snippet> snippets = snippetRepository.findAll(Sort.by(Sort.Direction.DESC, "lastModified"));
+        List<Snippet> snippets = snippetService.getAllSnippets();
         return ResponseEntity.ok(snippets);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Snippet> getSnippetById(@PathVariable UUID id) {
+    public ResponseEntity<Snippet> getSnippetById(@PathVariable @NonNull UUID id) {
         log.debug("REST request to get Snippet : {}", id);
-        return snippetRepository.findById(id)
+        return snippetService.getSnippetById(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
     public ResponseEntity<Snippet> createSnippet(@RequestBody SnippetCreatePayload payload) {
-        log.debug("REST request to create a new Snippet with title: '{}' and language: '{}'", payload.title(), payload.language());
+        log.debug("REST request to create a new Snippet with title: '{}' and language: '{}'", payload.title(),
+                payload.language());
         Snippet saved = snippetService.createSnippet(payload.title(), payload.language());
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
@@ -87,7 +103,7 @@ public class SnippetController {
 
     @PutMapping("/{id}/rename")
     public ResponseEntity<Void> rename(@PathVariable String id,
-                                       @Valid @RequestBody RenameRequest req) {
+            @Valid @RequestBody RenameRequest req) {
         snippetService.rename(id, req.title);
         return ResponseEntity.ok().build();
     }
@@ -108,14 +124,14 @@ public class SnippetController {
 
     @PutMapping("/{id}/tags")
     public ResponseEntity<Void> updateTags(@PathVariable String id,
-                                           @RequestBody TagsRequest req) {
+            @RequestBody TagsRequest req) {
         snippetService.updateTags(id, req.tags);
         return ResponseEntity.ok().build();
     }
 
     @GetMapping("/search")
     public List<Snippet> search(@RequestParam(required = false) String q,
-                                @RequestParam(required = false) String language) {
+            @RequestParam(required = false) String language) {
         return snippetService.search(q, language);
     }
 

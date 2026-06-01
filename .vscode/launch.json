@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "1. Spring Boot Backend",
+      "request": "launch",
+      "mainClass": "com.nilsson.SnippetVaultApplication",
+      "projectName": "backend",
+      "cwd": "${workspaceFolder}/backend"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "2. Electron Dev Client",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "cwd": "${workspaceFolder}/frontend"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "DEV: Snippet Vault (Compound)",
+      "configurations": [
+        "1. Spring Boot Backend",
+        "2. Electron Dev Client"
+      ]
+    }
+  ]
+}

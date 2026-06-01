@@ -55,9 +55,15 @@ type PanelState = 'checking' | 'ollama_down' | 'model_missing' | 'loading' | 're
             <div class="ollama-status">
               <span class="status-icon">⬡</span>
               <p class="status-msg">Ollama is not running</p>
+              <p class="status-desc">
+                Ollama runs language models locally on your system to keep your code private and offline.
+              </p>
               <p class="status-hint">
-                Start it with:<br>
-                <code>ollama serve</code>
+                Start the background service:
+                <code (click)="copyCommand('ollama serve')" title="Click to copy">{{ copyLabel() === 'Copied!' ? 'Copied!' : 'ollama serve' }}</code>
+              </p>
+              <p class="status-desc">
+                Don't have Ollama? Download it from <a href="https://ollama.com" target="_blank" style="color: var(--accent-primary); text-decoration: underline;">ollama.com</a>.
               </p>
               <button class="retry-btn" (click)="refresh()">Check again</button>
             </div>
@@ -68,9 +74,12 @@ type PanelState = 'checking' | 'ollama_down' | 'model_missing' | 'loading' | 're
             <div class="ollama-status">
               <span class="status-icon warn">⬡</span>
               <p class="status-msg">Model not installed</p>
+              <p class="status-desc">
+                Snippet Vault uses the <strong>qwen2.5-coder:3b</strong> model for syntax-aware code insights.
+              </p>
               <p class="status-hint">
-                Run in a terminal:<br>
-                <code>ollama pull qwen2.5-coder:3b</code>
+                Download model in terminal:
+                <code (click)="copyCommand('ollama pull qwen2.5-coder:3b')" title="Click to copy">{{ copyLabel() === 'Copied!' ? 'Copied!' : 'ollama pull qwen2.5-coder:3b' }}</code>
               </p>
               <button class="retry-btn" (click)="refresh()">Check again</button>
             </div>
@@ -391,19 +400,36 @@ type PanelState = 'checking' | 'ollama_down' | 'model_missing' | 'loading' | 're
       color: var(--text-muted);
       line-height: 1.7;
       margin: 0;
+      width: 100%;
+    }
+
+    .status-desc {
+      font-size: 10px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin: 0;
     }
 
     .status-hint code {
-      display: inline-block;
-      margin-top: 3px;
-      padding: 2px 7px;
-      background: rgba(0, 0, 0, 0.6);
-      border: 1px solid var(--border-light);
-      border-radius: 4px;
-      color: var(--accent-primary);
+      display: block;
+      margin-top: 4px;
+      padding: 6px 9px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border-input);
+      border-radius: 6px;
+      color: var(--accent-secondary);
       font-family: 'Cascadia Code', 'Fira Code', monospace;
       font-size: 10px;
-      user-select: text;
+      cursor: pointer;
+      text-align: center;
+      transition: all var(--dur-fast);
+      user-select: none;
+
+      &:hover {
+        border-color: var(--accent-primary);
+        background: rgba(230, 157, 103, 0.05);
+        color: var(--text-primary);
+      }
     }
   `]
 })
@@ -419,6 +445,14 @@ export class AiPanelComponent {
   acceptedTags = signal<Set<string>>(new Set());
   pendingChanges = signal(false);
   loadingMessage = signal('Analyzing snippet…');
+  copyLabel = signal('Copy command');
+
+  copyCommand(cmd: string): void {
+    navigator.clipboard.writeText(cmd).then(() => {
+      this.copyLabel.set('Copied!');
+      setTimeout(() => this.copyLabel.set('Copy command'), 2000);
+    });
+  }
 
   constructor() {
     effect(() => {
