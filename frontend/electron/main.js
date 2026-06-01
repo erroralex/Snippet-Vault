@@ -206,6 +206,8 @@ app.whenReady().then(async () => {
     fs.mkdirSync(targetDataDir, { recursive: true });
   }
 
+  targetDataDir = targetDataDir.replace(/\\/g, '/');
+
   const basePath = isDev ? path.join(__dirname, '..', '..') : process.resourcesPath;
   const javaExeName = process.platform === 'win32' ? 'java.exe' : 'java';
   const javaExePath = path.join(basePath, 'runtime', 'bin', javaExeName);

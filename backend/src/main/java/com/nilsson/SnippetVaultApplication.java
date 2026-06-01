@@ -84,6 +84,7 @@ public class SnippetVaultApplication {
 
     @EventListener(ApplicationReadyEvent.class)
     public void syncFilesOnStartup() throws IOException {
+        scanAndImportNewFiles();
         log.info("Syncing snippet files with database...");
         int written = 0, synced = 0, missing = 0;
 
@@ -114,5 +115,134 @@ public class SnippetVaultApplication {
 
         log.info("Startup sync complete — written: {}, synced from disk: {}, recreated: {}",
                 written, synced, missing);
+    }
+
+    private void scanAndImportNewFiles() {
+        log.info("Scanning file system for untracked snippet files...");
+        try {
+            java.nio.file.Path dataRoot = storage.getDataRoot();
+            if (!java.nio.file.Files.exists(dataRoot)) {
+                return;
+            }
+
+            java.util.List<java.nio.file.Path> allFiles;
+            try (java.util.stream.Stream<java.nio.file.Path> stream = java.nio.file.Files.walk(dataRoot)) {
+                allFiles = stream
+                        .filter(java.nio.file.Files::isRegularFile)
+                        .filter(p -> !p.getFileName().toString().equals("snippet-vault.db"))
+                        .collect(java.util.stream.Collectors.toList());
+            }
+
+            int imported = 0;
+            for (java.nio.file.Path file : allFiles) {
+                String relativePath = dataRoot.relativize(file).toString().replace("\\", "/");
+
+                if (repository.findByFilePath(relativePath).isEmpty()) {
+                    try {
+                        String content = java.nio.file.Files.readString(file, java.nio.charset.StandardCharsets.UTF_8);
+                        String filename = file.getFileName().toString();
+                        int dotIndex = filename.lastIndexOf('.');
+                        String title = dotIndex == -1 ? filename : filename.substring(0, dotIndex);
+                        String ext = dotIndex == -1 ? "" : filename.substring(dotIndex + 1);
+
+                        String language = getLanguageFromExtension(ext);
+                        String folderId = resolveFolderIdFromPath(file.getParent());
+
+                        Snippet newSnippet = Snippet.builder()
+                                .id(java.util.UUID.randomUUID())
+                                .title(title)
+                                .language(language)
+                                .content(content != null ? content : "")
+                                .filePath(relativePath)
+                                .folderId(folderId)
+                                .lastModified(java.time.Instant.now())
+                                .build();
+
+                        repository.save(newSnippet);
+                        imported++;
+                        log.info("Imported untracked file: {} as snippet '{}'", relativePath, title);
+                    } catch (Exception e) {
+                        log.error("Failed to import file {}: {}", relativePath, e.getMessage());
+                    }
+                }
+            }
+            if (imported > 0) {
+                log.info("Imported {} new/untracked snippets from files.", imported);
+            }
+        } catch (Exception e) {
+            log.error("Error during file system scan: {}", e.getMessage());
+        }
+    }
+
+    private String getLanguageFromExtension(String ext) {
+        if (ext == null || ext.isBlank()) return "text";
+        return switch (ext.toLowerCase()) {
+            case "java" -> "java";
+            case "ts" -> "typescript";
+            case "js" -> "javascript";
+            case "py" -> "python";
+            case "html" -> "html";
+            case "css" -> "css";
+            case "scss" -> "scss";
+            case "sql" -> "sql";
+            case "json" -> "json";
+            case "md" -> "markdown";
+            case "kt" -> "kotlin";
+            case "rs" -> "rust";
+            case "go" -> "go";
+            case "cs" -> "csharp";
+            case "php" -> "php";
+            case "rb" -> "ruby";
+            case "swift" -> "swift";
+            case "sh" -> "bash";
+            case "dockerfile" -> "dockerfile";
+            case "yml", "yaml" -> "yaml";
+            case "xml" -> "xml";
+            default -> ext.toLowerCase();
+        };
+    }
+
+    private String resolveFolderIdFromPath(java.nio.file.Path parentPath) {
+        if (parentPath == null) {
+            return null;
+        }
+        java.nio.file.Path dataRoot = storage.getDataRoot();
+        if (!parentPath.startsWith(dataRoot)) {
+            return null;
+        }
+        java.nio.file.Path relative = dataRoot.relativize(parentPath);
+        if (relative.toString().isEmpty() || relative.toString().equals(".")) {
+            return null;
+        }
+
+        java.util.List<String> folderSegments = new java.util.ArrayList<>();
+        for (int i = 0; i < relative.getNameCount(); i++) {
+            folderSegments.add(relative.getName(i).toString());
+        }
+
+        if (folderSegments.isEmpty()) {
+            return null;
+        }
+
+        String parentId = null;
+        for (String segmentName : folderSegments) {
+            java.util.Optional<Folder> folderOpt = parentId == null 
+                ? folderRepository.findByParentIdIsNullAndName(segmentName)
+                : folderRepository.findByParentIdAndName(parentId, segmentName);
+            Folder folder = folderOpt.orElse(null);
+
+            if (folder == null) {
+                folder = folderRepository.save(
+                        Folder.builder()
+                                .name(segmentName)
+                                .parentId(parentId)
+                                .icon("📁")
+                                .expanded(true)
+                                .build()
+                );
+            }
+            parentId = folder.getId();
+        }
+        return parentId;
     }
 }
