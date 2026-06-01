@@ -96,8 +96,15 @@ export class SnippetService {
   );
 
   private stompClient!: Client;
-  private readonly apiUrl = 'http://localhost:8080/api/snippets';
-  private readonly wsUrl = 'ws://localhost:8080/ws';
+  private get apiUrl(): string {
+    const port = typeof window !== 'undefined' ? ((window as any).electronAPI?.backendPort || '8080') : '8080';
+    return `http://localhost:${port}/api/snippets`;
+  }
+
+  private get wsUrl(): string {
+    const port = typeof window !== 'undefined' ? ((window as any).electronAPI?.backendPort || '8080') : '8080';
+    return `ws://localhost:${port}/ws`;
+  }
   private justCreated = false;
 
   constructor() {

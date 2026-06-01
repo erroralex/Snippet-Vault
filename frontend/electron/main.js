@@ -100,7 +100,7 @@ function createSplashWindow() {
   return splash;
 }
 
-function createMainWindow() {
+function createMainWindow(dynamicPort) {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -112,6 +112,7 @@ function createMainWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       devTools: false,
+      additionalArguments: [`--backend-port=${dynamicPort}`]
     }
   });
 
@@ -197,24 +198,29 @@ app.whenReady().then(async () => {
   if (isDev) {
     targetDataDir = path.join(__dirname, '..', '..', 'data');
   } else {
-    targetDataDir = path.join(path.dirname(process.execPath), 'data');
+    const exeDir = process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(process.execPath);
+    targetDataDir = path.join(exeDir, 'data');
   }
 
   if (!fs.existsSync(targetDataDir)) {
     fs.mkdirSync(targetDataDir, { recursive: true });
   }
 
+  targetDataDir = targetDataDir.replace(/\\/g, '/');
+
   const basePath = isDev ? path.join(__dirname, '..', '..') : process.resourcesPath;
   const javaExeName = process.platform === 'win32' ? 'java.exe' : 'java';
   const javaExePath = path.join(basePath, 'runtime', 'bin', javaExeName);
   const jarPath = path.join(basePath, 'runtime', 'app', 'backend.jar');
+
+  let dynamicPort = '8080';
 
   if (isDev && !fs.existsSync(javaExePath)) {
     console.log('No bundled Java runtime found. Assuming "Ghost Backend" on port 8080.');
     BACKEND_HEALTH_URL = 'http://localhost:8080/actuator/health';
     SHUTDOWN_URL = 'http://localhost:8080/actuator/shutdown';
   } else {
-    const dynamicPort = await getFreePort();
+    dynamicPort = await getFreePort();
     BACKEND_HEALTH_URL = `http://localhost:${dynamicPort}/actuator/health`;
     SHUTDOWN_URL = `http://localhost:${dynamicPort}/actuator/shutdown`;
 
@@ -223,6 +229,7 @@ app.whenReady().then(async () => {
     javaProcess = spawn(javaExePath, [
       '-jar', jarPath,
       `--server.port=${dynamicPort}`,
+      `--server.address=127.0.0.1`,
       dataDirArg
     ]);
 
@@ -240,7 +247,7 @@ app.whenReady().then(async () => {
   }
 
   const splash = createSplashWindow();
-  const mainWin = createMainWindow();
+  const mainWin = createMainWindow(dynamicPort);
 
   ipcMain.handle('window:minimize', () => mainWin.minimize());
   ipcMain.handle('window:maximize', () => {
