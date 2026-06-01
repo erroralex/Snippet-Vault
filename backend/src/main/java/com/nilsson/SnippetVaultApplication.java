@@ -57,13 +57,26 @@ public class SnippetVaultApplication {
     private final FolderRepository folderRepository;
 
     public static void main(String[] args) {
-        java.io.File workingDir = new java.io.File("").getAbsoluteFile();
-        if (workingDir.getName().equals("backend")) {
-            System.setProperty("snippetvault.data-dir", "../data");
-            new java.io.File("../data").mkdirs();
-        } else {
-            System.setProperty("snippetvault.data-dir", "data");
-            new java.io.File("data").mkdirs();
+        boolean hasDataDirArg = false;
+        for (String arg : args) {
+            if (arg.startsWith("--snippetvault.data-dir=")) {
+                hasDataDirArg = true;
+                String val = arg.substring(arg.indexOf('=') + 1);
+                System.setProperty("snippetvault.data-dir", val);
+                new java.io.File(val).mkdirs();
+                break;
+            }
+        }
+
+        if (!hasDataDirArg) {
+            java.io.File workingDir = new java.io.File("").getAbsoluteFile();
+            if (workingDir.getName().equals("backend")) {
+                System.setProperty("snippetvault.data-dir", "../data");
+                new java.io.File("../data").mkdirs();
+            } else {
+                System.setProperty("snippetvault.data-dir", "data");
+                new java.io.File("data").mkdirs();
+            }
         }
         SpringApplication.run(SnippetVaultApplication.class, args);
     }
