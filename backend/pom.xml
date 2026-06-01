@@ -13,7 +13,7 @@
 
     <groupId>com.nilsson</groupId>
     <artifactId>backend</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>backend</name>
     <description>backend for Snippet Vault</description>
 
@@ -73,6 +73,7 @@
     </dependencies>
 
     <build>
+        <finalName>backend</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

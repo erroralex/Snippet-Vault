@@ -24,8 +24,12 @@ Before you begin, ensure the following are installed and available on your `PATH
 
 ```
 snippet-vault/
-├── backend/        # Java 21 Spring Boot (Maven)
-└── frontend/       # Angular 21 + Monaco Editor & Electron shell
+├── backend/            # Java 21 Spring Boot (Maven)
+└── frontend/           # Angular 21 + Monaco Editor + Electron shell
+    ├── electron/       # Electron main process (main.js, preload.js)
+    ├── src/            # Angular source
+    ├── package.json    # Combined Angular + Electron dependencies & build config
+    └── dist/           # electron-builder output (exe / AppImage / dmg)
 ```
 
 ---
@@ -37,7 +41,7 @@ cd backend
 mvn clean install -DskipTests
 ```
 
-This produces `backend/target/backend-0.0.1-SNAPSHOT.jar` — the self-contained executable JAR.
+This produces `backend/target/backend.jar` — the self-contained executable JAR.
 
 ---
 
@@ -58,49 +62,38 @@ This will concurrently start the Angular development server and launch the Elect
 Rather than shipping a full JDK, `jlink` produces a minimal custom runtime (~40-50MB) containing only the modules the application needs. Run this from the **project root**:
 
 ```bash
-$JAVA_HOME/bin/jlink \
-  --add-modules java.base,java.se,jdk.httpserver,jdk.crypto.ec,jdk.unsupported \
-  --output frontend/runtime/jre \
+"$JAVA_HOME/bin/jlink" \
+  --add-modules java.se,jdk.httpserver,jdk.crypto.ec,jdk.unsupported,java.naming,java.desktop,java.management,java.security.jgss,java.instrument,java.sql,jdk.naming.rmi \
+  --output frontend/runtime \
   --strip-debug \
   --no-man-pages \
   --no-header-files \
-  --compress=2
+  --compress=zip-6
 ```
 
-**On Windows** (Git Bash or PowerShell):
-```bash
-"$JAVA_HOME/bin/jlink" \
-  --add-modules java.base,java.se,jdk.httpserver,jdk.crypto.ec,jdk.unsupported \
-  --output frontend/runtime/jre \
-  --strip-debug \
-  --no-man-pages \
-  --no-header-files \
-  --compress=2
-```
+This works on Linux, macOS, and Windows (Git Bash or PowerShell). The output path `frontend/runtime` is where Electron expects to find `bin/java` and the bundled app.
 
 ---
 
 ## Step 4 — Prepare the Runtime Directory
 
-Electron needs the backend JAR and a bundled JRE placed in a specific structure before packaging:
+Electron needs the backend JAR placed inside the runtime directory before packaging:
 
 ```bash
 mkdir -p frontend/runtime/app
-cp backend/target/backend-0.0.1-SNAPSHOT.jar frontend/runtime/app/backend.jar
+cp backend/target/backend.jar frontend/runtime/app/backend.jar
 ```
 
 ---
 
 ## Step 5 — Package the Electron App
 
-*Note: Ensure `electron-builder` is configured in `frontend/package.json` with a `dist` script.*
-
 ```bash
 cd frontend
 npm run dist
 ```
 
-`electron-builder` will produce a platform-native binary in `frontend/dist/`:
+`electron-builder` reads its configuration from the `build` key in `frontend/package.json` and produces a platform-native binary in `frontend/dist/`:
 
 | Platform | Output |
 |---|---|
@@ -131,15 +124,15 @@ cd backend && mvn clean install -DskipTests && cd ..
 # 2. Frontend Dependencies & Build
 cd frontend && npm install && npm run build && cd ..
 
-# 3. Bundled JRE
-$JAVA_HOME/bin/jlink \
-  --add-modules java.base,java.se,jdk.httpserver,jdk.crypto.ec,jdk.unsupported \
-  --output frontend/runtime/jre \
-  --strip-debug --no-man-pages --no-header-files --compress=2
+# 3. Bundled JRE (run from project root)
+"$JAVA_HOME/bin/jlink" \
+  --add-modules java.se,jdk.httpserver,jdk.crypto.ec,jdk.unsupported,java.naming,java.desktop,java.management,java.security.jgss,java.instrument,java.sql,jdk.naming.rmi \
+  --output frontend/runtime \
+  --strip-debug --no-man-pages --no-header-files --compress=zip-6
 
 # 4. Runtime directory
 mkdir -p frontend/runtime/app
-cp backend/target/backend-0.0.1-SNAPSHOT.jar frontend/runtime/app/backend.jar
+cp backend/target/backend.jar frontend/runtime/app/backend.jar
 
 # 5. Package
 cd frontend && npm run dist
