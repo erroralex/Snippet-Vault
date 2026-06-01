@@ -5,6 +5,10 @@
   "main": "electron/main.js",
   "author": "Alexander Nilsson",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/erroralex/Snippet-Vault.git"
+  },
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
