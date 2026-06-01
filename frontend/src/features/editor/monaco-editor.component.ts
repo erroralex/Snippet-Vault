@@ -88,6 +88,7 @@ export class MonacoEditorComponent implements OnDestroy {
 
   private monaco: Monaco | undefined;
   private editor: import('monaco-editor').editor.IStandaloneCodeEditor | undefined;
+  private activeSnippetId: string | null = null;
 
   accentColor = computed(() =>
     languageColor(this.snippet().language ?? '', this.snippet().colorLabel)
@@ -106,10 +107,28 @@ export class MonacoEditorComponent implements OnDestroy {
     effect(() => {
       const currentSnippet = this.snippet();
       if (this.editor && currentSnippet) {
+        if (this.activeSnippetId && this.activeSnippetId !== currentSnippet.id && this.isDirty()) {
+          this.saveSnippetSync(this.activeSnippetId, this.editor.getValue());
+        }
+        this.activeSnippetId = currentSnippet.id;
         if (this.editor.getValue() !== currentSnippet.content) {
             this.updateEditorContent(currentSnippet);
+            this.isDirty.set(false);
         }
       }
+    });
+
+    effect(() => {
+      const theme = this.snippetService.activeEditorTheme();
+      if (this.editor && this.monaco) {
+        this.monaco.editor.setTheme(theme);
+      }
+    });
+  }
+
+  private saveSnippetSync(id: string, content: string): void {
+    this.snippetService.updateSnippet(id, content).subscribe({
+      error: (err) => console.error('Failed to auto-save snippet on switch:', err)
     });
   }
 
@@ -118,48 +137,86 @@ export class MonacoEditorComponent implements OnDestroy {
       return;
     }
 
-    this.monaco.editor.defineTheme('gold-dark', {
+    this.monaco.editor.defineTheme('intellij-dark', {
       base: 'vs-dark',
       inherit: true,
       rules: [
-        {token: '', foreground: 'e0e0e0', background: '121212'},
-        {token: 'comment', foreground: '757575', fontStyle: 'italic'},
-        {token: 'keyword', foreground: 'e69d67', fontStyle: 'bold'},
-        {token: 'string', foreground: 'f0c27b'},
-        {token: 'number', foreground: 'bd93f9'},
-        {token: 'type', foreground: 'd4af37'},
-        {token: 'class', foreground: '66bb6a'},
-        {token: 'function', foreground: 'e69d67'},
-        {token: 'variable', foreground: 'e0e0e0'},
-        {token: 'operator', foreground: 'd4af37'},
-        {token: 'annotation', foreground: 'f89820'},
-        {token: 'tag', foreground: 'ff5e57'},
-        {token: 'attribute', foreground: 'e69d67'},
+        {token: '', foreground: 'bcbec4', background: '1e1f22'},
+        {token: 'comment', foreground: '7a7e85', fontStyle: 'italic'},
+        {token: 'keyword', foreground: 'cf8e6d', fontStyle: 'bold'},
+        {token: 'string', foreground: '6aab73'},
+        {token: 'number', foreground: '2aacb8'},
+        {token: 'type', foreground: 'c77dbb'},
+        {token: 'class', foreground: 'c77dbb'},
+        {token: 'function', foreground: '56a8f5'},
+        {token: 'variable', foreground: 'bcbec4'},
+        {token: 'operator', foreground: 'bcbec4'},
+        {token: 'annotation', foreground: 'b3ae60'},
+        {token: 'tag', foreground: 'd5b778'},
+        {token: 'attribute', foreground: 'bcbec4'},
       ],
       colors: {
-        'editor.background': '#121212',
-        'editor.foreground': '#e0e0e0',
-        'editor.lineHighlightBackground': '#1a1a1a',
-        'editor.selectionBackground': 'rgba(230, 157, 103, 0.15)',
-        'editor.inactiveSelectionBackground': 'rgba(230, 157, 103, 0.08)',
-        'editorLineNumber.foreground': '#333344',
-        'editorLineNumber.activeForeground': '#e69d67',
-        'editorCursor.foreground': '#e69d67',
-        'editorWhitespace.foreground': '#1a1a2a',
-        'editorIndentGuide.background1': '#1a1a2a',
-        'editorIndentGuide.activeBackground1': '#333344',
-        'editor.findMatchBackground': 'rgba(212, 175, 55, 0.25)',
-        'editor.findMatchHighlightBackground': 'rgba(230, 157, 103, 0.12)',
-        'scrollbarSlider.background': '#ffffff12',
-        'scrollbarSlider.hoverBackground': '#ffffff22',
-        'scrollbarSlider.activeBackground': 'rgba(230, 157, 103, 0.20)',
+        'editor.background': '#1e1f22',
+        'editor.foreground': '#bcbec4',
+        'editor.lineHighlightBackground': '#26282e',
+        'editor.selectionBackground': '#214283',
+        'editor.inactiveSelectionBackground': 'rgba(33, 66, 131, 0.5)',
+        'editorLineNumber.foreground': '#4e5157',
+        'editorLineNumber.activeForeground': '#a1a3ab',
+        'editorCursor.foreground': '#c6c6c6',
+        'editorWhitespace.foreground': '#2d3139',
+        'editorIndentGuide.background1': '#2b2d31',
+        'editorIndentGuide.activeBackground1': '#4e5157',
+        'editor.findMatchBackground': '#32593d',
+        'editor.findMatchHighlightBackground': '#3e5245',
+        'scrollbarSlider.background': '#ffffff0a',
+        'scrollbarSlider.hoverBackground': '#ffffff15',
+        'scrollbarSlider.activeBackground': '#ffffff25',
+      }
+    });
+
+    this.monaco.editor.defineTheme('intellij-light', {
+      base: 'vs',
+      inherit: true,
+      rules: [
+        {token: '', foreground: '080808', background: 'ffffff'},
+        {token: 'comment', foreground: '8c8c8c', fontStyle: 'italic'},
+        {token: 'keyword', foreground: '0033b3', fontStyle: 'bold'},
+        {token: 'string', foreground: '067d17'},
+        {token: 'number', foreground: '1750eb'},
+        {token: 'type', foreground: '000000'},
+        {token: 'class', foreground: '000000'},
+        {token: 'function', foreground: '00627a'},
+        {token: 'variable', foreground: '080808'},
+        {token: 'operator', foreground: '080808'},
+        {token: 'annotation', foreground: '9e7a28'},
+        {token: 'tag', foreground: '0033b3'},
+        {token: 'attribute', foreground: '00627a'},
+      ],
+      colors: {
+        'editor.background': '#ffffff',
+        'editor.foreground': '#080808',
+        'editor.lineHighlightBackground': '#f5f5f5',
+        'editor.selectionBackground': '#a6d2ff',
+        'editor.inactiveSelectionBackground': '#d0e8ff',
+        'editorLineNumber.foreground': '#adadad',
+        'editorLineNumber.activeForeground': '#1c1c1c',
+        'editorCursor.foreground': '#000000',
+        'editorWhitespace.foreground': '#d1d1d1',
+        'editorIndentGuide.background1': '#ebecf0',
+        'editorIndentGuide.activeBackground1': '#adadad',
+        'editor.findMatchBackground': '#ffe79a',
+        'editor.findMatchHighlightBackground': '#ffe79a',
+        'scrollbarSlider.background': '#0000000a',
+        'scrollbarSlider.hoverBackground': '#00000015',
+        'scrollbarSlider.activeBackground': '#00000025',
       }
     });
 
     this.editor = this.monaco.editor.create(this.editorContainer.nativeElement, {
       value: this.snippet().content || '',
       language: this.getMonacoLanguage(this.snippet().language || 'plaintext'),
-      theme: 'gold-dark',
+      theme: this.snippetService.activeEditorTheme(),
       automaticLayout: true,
       minimap: { enabled: false },
       readOnly: false,
@@ -240,6 +297,9 @@ export class MonacoEditorComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.activeSnippetId && this.isDirty() && this.editor) {
+      this.saveSnippetSync(this.activeSnippetId, this.editor.getValue());
+    }
     this.destroy$.next();
     this.destroy$.complete();
     this.editor?.dispose();

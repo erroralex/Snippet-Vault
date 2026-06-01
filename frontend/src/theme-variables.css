@@ -1,77 +1,80 @@
-/* ── Dark Premium Gold theme tokens ─────────────────────────────────── */
-:root {
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300..700&display=swap');
+
+/* ── Coder Dark Theme (Default) ────────────────────────────────────── */
+:root, .theme-dark {
+  --font-family-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-family-header: 'Inter', 'Segoe UI', system-ui, sans-serif;
+
   /* --- Backgrounds --- */
-  --bg-app:              #121212;
+  --bg-app:              #18181c;
   --bg-app-image:        none;
-  --bg-header:           rgba(18, 18, 18, 0.98);
-  --bg-sidebar-left:     rgba(20, 20, 20, 0.98);
-  --bg-panel:            rgba(30, 30, 30, 0.80);
-  --bg-panel-opaque:     #1e1e1e;
-  --bg-input:            #0a0a0a;
-  --bg-menu:             #1e1e1e;
-  --bg-card:             rgba(30, 30, 30, 0.60);
-  --bg-btn-inner:        #1e1e1e;
+  --bg-header:           #1f1f23;
+  --bg-sidebar-left:     #121214;
+  --bg-panel:            rgba(31, 31, 35, 0.95);
+  --bg-panel-opaque:     #1f1f23;
+  --bg-input:            #121214;
+  --bg-menu:             #1f1f23;
+  --bg-card:             rgba(31, 31, 35, 0.60);
+  --bg-btn-inner:        #1f1f23;
 
   /* --- Borders --- */
-  --border-light:        rgba(255, 255, 255, 0.05);
-  --border-input:        rgba(255, 255, 255, 0.08);
-  --border-glass:        1px solid rgba(255, 255, 255, 0.05);
+  --border-light:        rgba(255, 255, 255, 0.08);
+  --border-input:        rgba(255, 255, 255, 0.12);
+  --border-glass:        1px solid rgba(255, 255, 255, 0.08);
 
   /* --- Text --- */
-  --text-primary:        #f0f0f0;
-  --text-secondary:      #b0b0b0;
-  --text-muted:          #757575;
+  --text-primary:        #f3f4f6; /* crisp off-white, 15.5:1 contrast */
+  --text-secondary:      #9ca3af; /* 5.6:1 contrast (WCAG AA) */
+  --text-muted:          #868a96; /* 4.7:1 contrast (WCAG AA) */
 
   /* --- Accents & Gradients --- */
-  --accent-primary:      #e69d67;
-  --accent-secondary:    #d4af37;
-  --grad-text:           linear-gradient(135deg, #e69d67 0%, #f0c27b 100%);
-  --grad-hover:          linear-gradient(135deg, #e69d67 0%, #d4af37 100%);
-  --grad-border:         linear-gradient(135deg, #e69d67 0%, #d4af37 100%);
+  --accent-primary:      #3574f0; /* IDE blue */
+  --accent-secondary:    #cf8e6d; /* Code orange */
+  --grad-text:           linear-gradient(135deg, #f3f4f6 0%, #9ca3af 100%);
+  --grad-hover:          linear-gradient(135deg, #3574f0 0%, #56a8f5 100%);
+  --grad-border:         linear-gradient(135deg, #3574f0 0%, #cf8e6d 100%);
 
   /* --- Status --- */
-  --status-danger:       #ef5350;
-  --status-warning:      #ffca28;
-  --status-success:      #66bb6a;
+  --status-danger:       #db5856;
+  --status-warning:      #d48a27;
+  --status-success:      #5fad6b;
 
   /* --- Effects --- */
   --glass-blur:          blur(12px);
-  --shadow-panel:        0 8px 32px rgba(0, 0, 0, 0.50);
-  --shadow-glow-primary: 0 0 10px rgba(230, 157, 103, 0.20);
-  --shadow-glow-secondary: 0 0 15px rgba(212, 175, 55, 0.20);
+  --shadow-panel:        0 8px 32px rgba(0, 0, 0, 0.40);
+  --shadow-glow-primary: 0 0 10px rgba(53, 116, 240, 0.20);
+  --shadow-glow-secondary: 0 0 15px rgba(207, 142, 109, 0.20);
 
   /* --- Scrollbars --- */
-  --scrollbar-track:       rgba(255, 255, 255, 0.02);
-  --scrollbar-thumb:       rgba(255, 255, 255, 0.10);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.15);
+  --scrollbar-track:       #18181c;
+  --scrollbar-thumb:       #393b40;
+  --scrollbar-thumb-hover: #4e5157;
 
-  /* --- Language colour palette ---
-     Tokens used by language-color.ts and referenced in sidebar chip colours.
-     Keep language colours vivid and distinct against the dark-grey background.  */
+  /* --- Language colors (Dark background compliant) --- */
   --lang-java:        #f89820;
-  --lang-typescript:  #e69d67;   /* matches --accent-primary */
-  --lang-javascript:  #ffe033;
+  --lang-typescript:  #56a8f5;
+  --lang-javascript:  #e5c07b;
   --lang-python:      #4ec9b0;
-  --lang-html:        #ff5e57;
-  --lang-css:         #d4af37;   /* matches --accent-secondary */
-  --lang-scss:        #ff79c6;
-  --lang-sql:         #f1fa8c;
-  --lang-json:        #66bb6a;
-  --lang-markdown:    #e69d67;
-  --lang-prompt:      #d4af37;
-  --lang-kotlin:      #c792ea;
-  --lang-rust:        #ef5350;
+  --lang-html:        #e06c75;
+  --lang-css:         #56a8f5;
+  --lang-scss:        #c678dd;
+  --lang-sql:         #d19a66;
+  --lang-json:        #98c379;
+  --lang-markdown:    #abb2bf;
+  --lang-prompt:      #56b6c2;
+  --lang-kotlin:      #c678dd;
+  --lang-rust:        #e06c75;
   --lang-go:          #4ec9b0;
-  --lang-csharp:      #66bb6a;
-  --lang-php:         #c792ea;
-  --lang-ruby:        #ef5350;
-  --lang-swift:       #f89820;
-  --lang-bash:        #66bb6a;
-  --lang-dockerfile:  #e69d67;
-  --lang-yaml:        #ff5e57;
+  --lang-csharp:      #98c379;
+  --lang-php:         #c678dd;
+  --lang-ruby:        #e06c75;
+  --lang-swift:       #d19a66;
+  --lang-bash:        #98c379;
+  --lang-dockerfile:  #56b6c2;
+  --lang-yaml:        #e06c75;
   --lang-xml:         #f89820;
-  --lang-text:        #757575;
-  --lang-default:     #b0b0b0;
+  --lang-text:        #868a96;
+  --lang-default:     #9ca3af;
 
   /* --- Motion --- */
   --ease-out-expo:  cubic-bezier(0.22, 1, 0.36, 1);
@@ -82,10 +85,95 @@
   --dur-standard:   220ms;
   --dur-slow:       350ms;
 
-  /* --- Z-index --- */
   --z-command-palette: 900;
   --z-context-menu:    800;
   --z-bulk-bar:        700;
   --z-tooltip:         600;
   --ease-overlay:      cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Coder Light Theme ─────────────────────────────────────────────── */
+.theme-light {
+  --font-family-body: 'Inter', 'Segoe UI', system-ui, sans-serif;
+  --font-family-header: 'Inter', 'Segoe UI', system-ui, sans-serif;
+
+  /* --- Backgrounds --- */
+  --bg-app:              #f3f4f6;
+  --bg-app-image:        none;
+  --bg-header:           #e5e7eb;
+  --bg-sidebar-left:     #e5e7eb;
+  --bg-panel:            rgba(255, 255, 255, 0.95);
+  --bg-panel-opaque:     #ffffff;
+  --bg-input:            #ffffff;
+  --bg-menu:             #ffffff;
+  --bg-card:             rgba(255, 255, 255, 0.70);
+  --bg-btn-inner:        #f9fafb;
+
+  /* --- Borders --- */
+  --border-light:        #cbd5e1;
+  --border-input:        #cbd5e1;
+  --border-glass:        1px solid #cbd5e1;
+
+  /* --- Text --- */
+  --text-primary:        #111827; /* crisp dark gray, 17.5:1 contrast */
+  --text-secondary:      #4b5563; /* 6.2:1 contrast (WCAG AA) */
+  --text-muted:          #6b7280; /* 4.8:1 contrast (WCAG AA) */
+
+  /* --- Accents & Gradients --- */
+  --accent-primary:      #1e40af; /* Deep IDE blue */
+  --accent-secondary:    #00627a;
+  --grad-text:           linear-gradient(135deg, #111827 0%, #4b5563 100%);
+  --grad-hover:          linear-gradient(135deg, #1e40af 0%, #3574f0 100%);
+  --grad-border:         linear-gradient(135deg, #1e40af 0%, #00627a 100%);
+
+  /* --- Status --- */
+  --status-danger:       #c23b38;
+  --status-warning:      #b55b00;
+  --status-success:      #2b7a3e;
+
+  /* --- Effects --- */
+  --glass-blur:          blur(12px);
+  --shadow-panel:        0 8px 32px rgba(0, 0, 0, 0.08);
+  --shadow-glow-primary: 0 0 10px rgba(30, 64, 175, 0.15);
+  --shadow-glow-secondary: 0 0 15px rgba(0, 98, 122, 0.15);
+
+  /* --- Scrollbars --- */
+  --scrollbar-track:       #f3f4f6;
+  --scrollbar-thumb:       #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+
+  /* --- Language colors (Light background compliant, WCAG AA+) --- */
+  --lang-java:        #b86200;
+  --lang-typescript:  #1b5cb8;
+  --lang-javascript:  #826200;
+  --lang-python:      #107c62;
+  --lang-html:        #b52a30;
+  --lang-css:         #1b5cb8;
+  --lang-scss:        #8c329c;
+  --lang-sql:         #9c5200;
+  --lang-json:        #2b7a3e;
+  --lang-markdown:    #374151;
+  --lang-prompt:      #007a8c;
+  --lang-kotlin:      #8c329c;
+  --lang-rust:        #b52a30;
+  --lang-go:          #107c62;
+  --lang-csharp:      #2b7a3e;
+  --lang-php:         #8c329c;
+  --lang-ruby:        #b52a30;
+  --lang-swift:       #9c5200;
+  --lang-bash:        #2b7a3e;
+  --lang-dockerfile:  #007a8c;
+  --lang-yaml:        #b52a30;
+  --lang-xml:         #b86200;
+  --lang-text:        #6b7280;
+  --lang-default:     #4b5563;
+}
+
+/* --- Focus & Window Outline Reset --- */
+* {
+  outline: none !important;
+}
+html, body, :host, .main-container {
+  outline: none !important;
+  border: none !important;
 }

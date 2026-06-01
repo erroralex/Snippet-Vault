@@ -68,3 +68,4 @@ application-secrets.properties
 Thumbs.db
 desktop.ini
 $RECYCLE.BIN/
+/.agents/

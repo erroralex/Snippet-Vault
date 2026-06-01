@@ -19,16 +19,32 @@ import java.io.IOException;
  * ──────────────────────────────────────────────
  * <h2>SnippetVaultApplication</h2>
  * ──────────────────────────────────────────────
- * <p><strong>Responsibility:</strong> Serves as the entry point for the SnippetVault backend application and orchestrates initial data synchronization.</p>
- * <p><strong>Functions:</strong></p>
+ * <p>
+ * <strong>Responsibility:</strong> Serves as the entry point for the
+ * SnippetVault backend application and orchestrates initial data
+ * synchronization.
+ * </p>
+ * <p>
+ * <strong>Functions:</strong>
+ * </p>
  * <ul>
  * <li>Initializes and runs the Spring Boot application.</li>
- * <li>Performs a crucial startup synchronization between the database-managed snippet metadata and their physical file representations on disk.</li>
- * <li>Ensures that all snippets in the database have a corresponding file on the file system, creating them if missing.</li>
- * <li>Detects and reconciles external changes made to snippet files on disk, updating the database content accordingly.</li>
- * <li>Recreates missing snippet files if they were deleted externally but still exist in the database.</li>
+ * <li>Performs a crucial startup synchronization between the database-managed
+ * snippet metadata and their physical file representations on disk.</li>
+ * <li>Ensures that all snippets in the database have a corresponding file on
+ * the file system, creating them if missing.</li>
+ * <li>Detects and reconciles external changes made to snippet files on disk,
+ * updating the database content accordingly.</li>
+ * <li>Recreates missing snippet files if they were deleted externally but still
+ * exist in the database.</li>
  * </ul>
- * <p><strong>Technical Role:</strong> The main Spring Boot application class, responsible for bootstrapping the application context and ensuring data consistency between the persistence layer and the file system upon startup, interacting with {@code SnippetRepository}, {@code FolderRepository}, and {@code LocalFileSystemStorage}.</p>
+ * <p>
+ * <strong>Technical Role:</strong> The main Spring Boot application class,
+ * responsible for bootstrapping the application context and ensuring data
+ * consistency between the persistence layer and the file system upon startup,
+ * interacting with {@code SnippetRepository}, {@code FolderRepository}, and
+ * {@code LocalFileSystemStorage}.
+ * </p>
  * ──────────────────────────────────────────────
  */
 @Slf4j
@@ -41,13 +57,22 @@ public class SnippetVaultApplication {
     private final FolderRepository folderRepository;
 
     public static void main(String[] args) {
+        java.io.File workingDir = new java.io.File("").getAbsoluteFile();
+        if (workingDir.getName().equals("backend")) {
+            System.setProperty("snippetvault.data-dir", "../data");
+            new java.io.File("../data").mkdirs();
+        } else {
+            System.setProperty("snippetvault.data-dir", "data");
+            new java.io.File("data").mkdirs();
+        }
         SpringApplication.run(SnippetVaultApplication.class, args);
     }
 
     private String buildRelativePath(Snippet snippet) {
         String folderName = null;
-        if (snippet.getFolderId() != null && !snippet.getFolderId().isBlank()) {
-            folderName = folderRepository.findById(snippet.getFolderId())
+        String folderId = snippet.getFolderId();
+        if (folderId != null && !folderId.isBlank()) {
+            folderName = folderRepository.findById(folderId)
                     .map(Folder::getName)
                     .orElse(null);
         }

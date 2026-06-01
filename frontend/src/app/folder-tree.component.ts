@@ -86,6 +86,7 @@ import {Folder} from './models/folder.model';
         [style.--folder-color]="folder.color || 'var(--lang-default)'"
         [attr.data-folder-id]="folder.id"
         (click)="selectFolder(folder)"
+        (dblclick)="toggleExpand($event, folder)"
         (dragover)="onFolderDragOver($event, folder.id)"
         (dragleave)="onFolderDragLeave(folder.id)"
         (drop)="onDropToFolder($event, folder.id)"
@@ -152,18 +153,40 @@ import {Folder} from './models/folder.model';
         class="context-menu appear"
         [style.top.px]="contextMenuY()"
         [style.left.px]="contextMenuX()">
-        <button class="ctx-item pressable" (click)="startFolderRename(contextMenu()!)">✎ Rename</button>
-        <button class="ctx-item pressable" (click)="changeColor()">◉ Color</button>
+        <button class="ctx-item pressable" (click)="startFolderRename(contextMenu()!)"><i class="pi pi-pencil"></i> Rename</button>
+        <div class="ctx-sep"></div>
+        <div class="ctx-color-picker-title">Folder Color</div>
+        <div class="ctx-color-picker" (click)="$event.stopPropagation()">
+          <button
+            class="color-dot reset-color pressable"
+            [class.active]="!contextMenu()?.color"
+            (click)="selectFolderColor(contextMenu()!, null)"
+            title="Reset color">
+            ✕
+          </button>
+          @for (c of folderColors; track c) {
+            <button
+              class="color-dot pressable"
+              [style.background-color]="c"
+              [class.active]="contextMenu()?.color === c"
+              (click)="selectFolderColor(contextMenu()!, c)"
+              title="Change color">
+            </button>
+          }
+          <label class="color-dot custom-color pressable" [style.background]="'conic-gradient(red, yellow, green, cyan, blue, magenta, red)'" title="Custom color">
+            <input type="color" [value]="contextMenu()?.color || '#a259ff'" (change)="selectFolderColor(contextMenu()!, $any($event.target).value)" style="display: none;" />
+          </label>
+        </div>
         <div class="ctx-sep"></div>
         <button class="ctx-item pressable" (click)="startCreating(contextMenu()!.id)">
-          + Sub-folder
+          <i class="pi pi-plus"></i> Sub-folder
         </button>
         <div class="ctx-sep"></div>
         <button class="ctx-item danger pressable" (click)="deleteFolder(false)">
-          ✕ Delete (keep snippets)
+          <i class="pi pi-trash"></i> Delete (keep snippets)
         </button>
         <button class="ctx-item danger pressable" (click)="deleteFolder(true)">
-          ✕ Delete with snippets
+          <i class="pi pi-trash"></i> Delete with snippets
         </button>
       </div>
     }
@@ -347,6 +370,12 @@ import {Folder} from './models/folder.model';
       font-family: inherit;
       transition: background var(--dur-fast), color var(--dur-fast);
 
+      i {
+        margin-right: 6px;
+        font-size: 11px;
+        vertical-align: middle;
+      }
+
       &:hover {
         background: rgba(255, 255, 255, 0.05);
         color: var(--text-primary);
@@ -365,6 +394,57 @@ import {Folder} from './models/folder.model';
       height: 1px;
       background: var(--border-light);
       margin: 4px 0;
+    }
+
+    .ctx-color-picker-title {
+      font-size: 10px;
+      color: var(--text-muted);
+      padding: 2px 10px;
+      font-weight: 500;
+    }
+
+    .ctx-color-picker {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      padding: 6px 10px;
+    }
+
+    .color-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 1px solid var(--border-light);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: var(--text-muted);
+      transition: transform var(--dur-fast), border-color var(--dur-fast);
+      background: none;
+
+      &:hover {
+        transform: scale(1.15);
+        border-color: var(--text-primary);
+      }
+
+      &.active {
+        border-color: var(--text-primary);
+        box-shadow: 0 0 8px currentColor;
+      }
+
+      &.reset-color {
+        background: rgba(255, 255, 255, 0.05);
+        &:hover {
+          background: rgba(255, 255, 255, 0.15);
+        }
+      }
+
+      &.custom-color {
+        position: relative;
+        overflow: hidden;
+      }
     }
   `]
 })
@@ -455,24 +535,44 @@ export class FolderTreeComponent {
     this.snippetService.clearSelection();
   }
 
+  private activeCloseHandler: ((e: MouseEvent | KeyboardEvent) => void) | null = null;
+
+  closeContextMenu(): void {
+    this.contextMenu.set(null);
+    if (this.activeCloseHandler) {
+      document.removeEventListener('click', this.activeCloseHandler);
+      document.removeEventListener('keydown', this.activeCloseHandler);
+      this.activeCloseHandler = null;
+    }
+  }
+
   openContextMenu(event: MouseEvent, folder: Folder): void {
     event.preventDefault();
     this.contextMenu.set(folder);
     this.contextMenuX.set(event.clientX);
     this.contextMenuY.set(event.clientY);
+
+    if (this.activeCloseHandler) {
+      document.removeEventListener('click', this.activeCloseHandler);
+      document.removeEventListener('keydown', this.activeCloseHandler);
+      this.activeCloseHandler = null;
+    }
+
     setTimeout(() => {
-      const close = () => {
-        this.contextMenu.set(null);
-        document.removeEventListener('click', close);
+      const close = (e: MouseEvent | KeyboardEvent) => {
+        if (e instanceof KeyboardEvent && e.key !== 'Escape') return;
+        this.closeContextMenu();
       };
+      this.activeCloseHandler = close;
       document.addEventListener('click', close);
+      document.addEventListener('keydown', close);
     });
   }
 
   startFolderRename(folder: Folder): void {
     this.folderRenameValue = folder.name;
     this.renamingFolderId.set(folder.id);
-    this.contextMenu.set(null);
+    this.closeContextMenu();
     setTimeout(() => {
       const input = document.querySelector('.folder-rename-input') as HTMLInputElement;
       input?.focus();
@@ -501,27 +601,21 @@ export class FolderTreeComponent {
     setTimeout(() => this.isFolderCommitting = false, 100);
   }
 
-  changeColor(): void {
-    const f = this.contextMenu();
-    if (!f) return;
-    this.contextMenu.set(null);
-    const input = document.createElement('input');
-    input.type = 'color';
-    input.value = f.color ?? '#a259ff';
-    input.style.position = 'fixed';
-    input.style.opacity = '0';
-    input.style.pointerEvents = 'none';
-    document.body.appendChild(input);
-    input.addEventListener('change', () => {
-      this.folderService.updateFolder(f.id, {color: input.value}).subscribe();
-      document.body.removeChild(input);
-    });
-    input.addEventListener('blur', () => {
-      if (document.body.contains(input)) {
-        document.body.removeChild(input);
-      }
-    });
-    input.click();
+  folderColors = [
+    '#a259ff', // Lavender
+    '#3b82f6', // Sky Blue
+    '#06b6d4', // Cyan
+    '#10b981', // Teal
+    '#22c55e', // Emerald
+    '#eab308', // Yellow
+    '#f97316', // Orange
+    '#ef4444', // Red
+    '#ec4899'  // Pink
+  ];
+
+  selectFolderColor(folder: Folder, color: string | null): void {
+    this.folderService.updateFolder(folder.id, {color}).subscribe();
+    this.closeContextMenu();
   }
 
   deleteFolder(withSnippets: boolean): void {
@@ -533,6 +627,6 @@ export class FolderTreeComponent {
     if (confirm(msg)) {
       this.folderService.deleteFolder(f.id, !withSnippets).subscribe();
     }
-    this.contextMenu.set(null);
+    this.closeContextMenu();
   }
 }

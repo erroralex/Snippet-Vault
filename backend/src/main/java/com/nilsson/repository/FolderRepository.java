@@ -23,4 +23,8 @@ public interface FolderRepository extends JpaRepository<Folder, String> {
     List<Folder> findAllByOrderBySortOrderAsc();
 
     List<Folder> findByParentId(String parentId);
+
+    java.util.Optional<Folder> findByParentIdAndName(String parentId, String name);
+
+    java.util.Optional<Folder> findByParentIdIsNullAndName(String name);
 }

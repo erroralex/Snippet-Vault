@@ -1,9 +1,10 @@
-import {Injectable, signal, inject, PLATFORM_ID, computed} from '@angular/core';
+import {Injectable, signal, inject, PLATFORM_ID, computed, effect} from '@angular/core';
 import {isPlatformBrowser} from '@angular/common';
 import {HttpClient} from '@angular/common/http';
 import {Client, IFrame, IMessage} from '@stomp/stompjs';
 import {tap} from 'rxjs/operators';
 import {Observable} from 'rxjs';
+import {FolderService} from '../../app/folder.service';
 
 export interface Snippet {
   id: string;
@@ -44,6 +45,7 @@ export interface Snippet {
 export class SnippetService {
   private http = inject(HttpClient);
   private platformId = inject(PLATFORM_ID);
+  private folderService = inject(FolderService);
 
   snippets = signal<Snippet[]>([]);
   selectedSnippet = signal<Snippet | null>(null);
@@ -55,6 +57,8 @@ export class SnippetService {
   activeFolderId = signal<string | null | 'root'>('root');
   selectedIds = signal<Set<string>>(new Set());
   recentlyViewed = signal<string[]>([]);
+  activeTheme = signal<'dark' | 'light'>('dark');
+  activeEditorTheme = signal<'intellij-dark' | 'intellij-light'>('intellij-dark');
 
   availableLanguages = computed(() =>
     [...new Set(this.snippets().map(s => s.language))].sort()
@@ -99,6 +103,33 @@ export class SnippetService {
   constructor() {
     if (isPlatformBrowser(this.platformId)) {
       this.initStompClient();
+
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme === 'dark' || savedTheme === 'light') {
+        this.activeTheme.set(savedTheme);
+      } else if (savedTheme === 'gold-dark') {
+        this.activeTheme.set('dark');
+      } else if (savedTheme === 'dark-tie') {
+        this.activeTheme.set('light');
+      }
+
+      const savedEditorTheme = localStorage.getItem('editorTheme') as 'intellij-dark' | 'intellij-light';
+      if (savedEditorTheme === 'intellij-dark' || savedEditorTheme === 'intellij-light') {
+        this.activeEditorTheme.set(savedEditorTheme);
+      }
+
+      effect(() => {
+        const theme = this.activeTheme();
+        localStorage.setItem('theme', theme);
+
+        const body = document.body;
+        body.classList.remove('theme-gold-dark', 'theme-dark-tie', 'theme-dark', 'theme-light');
+        body.classList.add(`theme-${theme}`);
+      });
+
+      effect(() => {
+        localStorage.setItem('editorTheme', this.activeEditorTheme());
+      });
     }
     this.loadSnippets();
   }
@@ -262,6 +293,12 @@ export class SnippetService {
         if (message.body) {
           console.log('Received real-time update:', message.body);
           this.loadSnippets();
+        }
+      });
+      this.stompClient.subscribe('/topic/folders', (message: IMessage) => {
+        if (message.body) {
+          console.log('Received real-time folder update:', message.body);
+          this.folderService.loadFolders();
         }
       });
     };

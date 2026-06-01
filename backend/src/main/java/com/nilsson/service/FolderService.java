@@ -37,13 +37,14 @@ public class FolderService {
     private final FolderRepository folderRepository;
     private final SnippetRepository snippetRepository;
     private final LocalFileSystemStorage storage;
+    private final org.springframework.messaging.simp.SimpMessagingTemplate messagingTemplate;
 
     public List<Folder> getAll() {
         return folderRepository.findAllByOrderBySortOrderAsc();
     }
 
     public Folder create(CreateFolderRequest req) {
-        return folderRepository.save(
+        Folder saved = folderRepository.save(
                 Folder.builder()
                         .name(req.name())
                         .parentId(req.parentId())
@@ -51,6 +52,8 @@ public class FolderService {
                         .icon(req.icon() != null ? req.icon() : "📁")
                         .build()
         );
+        broadcast();
+        return saved;
     }
 
     public void update(String id, UpdateFolderRequest req) {
@@ -58,24 +61,16 @@ public class FolderService {
         boolean rename = req.name() != null && !req.name().equals(f.getName());
 
         if (rename) {
-            snippetRepository.findByFolderId(id).forEach(s -> {
-                String oldPath = s.getFilePath();
-                String newPath = FilePathUtils.relativePathFor(req.name(), s.getLanguage(), s.getTitle());
-                s.setFilePath(newPath);
-                snippetRepository.save(s);
-                try {
-                    storage.move(oldPath, newPath);
-                } catch (IOException e) {
-                    log.error("Failed to move file for snippet {}: {}", s.getId(), e.getMessage());
-                }
-            });
+            f.setName(req.name());
+            folderRepository.save(f);
+            updateDescendantSnippetsPaths(id);
         }
 
-        if (req.name() != null) f.setName(req.name());
         if (req.color() != null) f.setColor(req.color());
         if (req.icon() != null) f.setIcon(req.icon());
         if (req.expanded() != null) f.setExpanded(req.expanded());
         folderRepository.save(f);
+        broadcast();
     }
 
     public void delete(String id, boolean moveSnippetsToRoot) {
@@ -85,6 +80,9 @@ public class FolderService {
                         String oldPath = s.getFilePath();
                         s.setFolderId(null);
                         String newPath = FilePathUtils.relativePathFor(null, s.getLanguage(), s.getTitle());
+                        if (oldPath != null && !oldPath.equals(newPath)) {
+                            newPath = getUniqueFilePath(newPath);
+                        }
                         s.setFilePath(newPath);
                         snippetRepository.save(s);
                         try {
@@ -106,6 +104,7 @@ public class FolderService {
         folderRepository.findByParentId(id)
                 .forEach(sub -> delete(sub.getId(), moveSnippetsToRoot));
         folderRepository.deleteById(id);
+        broadcast();
     }
 
     public void updateOrder(List<OrderRequest> order) {
@@ -115,5 +114,67 @@ public class FolderService {
                     folderRepository.save(f);
                 })
         );
+        broadcast();
+    }
+
+    private String buildFolderPath(String folderId) {
+        if (folderId == null || folderId.isBlank()) {
+            return "";
+        }
+        List<String> segments = new java.util.ArrayList<>();
+        String currentId = folderId;
+        while (currentId != null && !currentId.isBlank()) {
+            Folder f = folderRepository.findById(currentId).orElse(null);
+            if (f == null) break;
+            segments.add(0, FilePathUtils.sanitiseTitle(f.getName()));
+            currentId = f.getParentId();
+        }
+        return String.join("/", segments);
+    }
+
+    private String buildSnippetRelativePath(com.nilsson.model.Snippet s) {
+        String folderPath = buildFolderPath(s.getFolderId());
+        return FilePathUtils.relativePathFor(folderPath, s.getLanguage(), s.getTitle());
+    }
+
+    private String getUniqueFilePath(String relativePath) {
+        if (!storage.exists(relativePath)) {
+            return relativePath;
+        }
+        int dotIndex = relativePath.lastIndexOf('.');
+        String base = dotIndex == -1 ? relativePath : relativePath.substring(0, dotIndex);
+        String ext = dotIndex == -1 ? "" : relativePath.substring(dotIndex);
+        int counter = 1;
+        while (true) {
+            String candidate = base + "_" + counter + ext;
+            if (!storage.exists(candidate)) {
+                return candidate;
+            }
+            counter++;
+        }
+    }
+
+    private void updateDescendantSnippetsPaths(String folderId) {
+        snippetRepository.findByFolderId(folderId).forEach(s -> {
+            String oldPath = s.getFilePath();
+            String newPath = buildSnippetRelativePath(s);
+            if (oldPath != null && !oldPath.equals(newPath)) {
+                newPath = getUniqueFilePath(newPath);
+                s.setFilePath(newPath);
+                snippetRepository.save(s);
+                try {
+                    storage.move(oldPath, newPath);
+                } catch (IOException e) {
+                    log.error("Failed to move snippet file on folder path change: {}", e.getMessage());
+                }
+            }
+        });
+        folderRepository.findByParentId(folderId).forEach(child -> {
+            updateDescendantSnippetsPaths(child.getId());
+        });
+    }
+
+    private void broadcast() {
+        messagingTemplate.convertAndSend("/topic/folders", "updated");
     }
 }
