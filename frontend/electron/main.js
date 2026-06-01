@@ -223,6 +223,7 @@ app.whenReady().then(async () => {
     javaProcess = spawn(javaExePath, [
       '-jar', jarPath,
       `--server.port=${dynamicPort}`,
+      `--server.address=127.0.0.1`,
       dataDirArg
     ]);
 
