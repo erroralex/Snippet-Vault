@@ -52,7 +52,6 @@ public class FileWatcherService {
                 return t;
             });
 
-    @PostConstruct
     public void start() throws IOException {
         watchService = FileSystems.getDefault().newWatchService();
         registerAll(storage.getDataRoot());
@@ -236,7 +235,7 @@ public class FileWatcherService {
         }
 
         java.util.List<String> folderSegments = new java.util.ArrayList<>();
-        for (int i = 0; i < relative.getNameCount() - 1; i++) {
+        for (int i = 0; i < relative.getNameCount(); i++) {
             folderSegments.add(relative.getName(i).toString());
         }
 

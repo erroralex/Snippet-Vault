@@ -32,6 +32,7 @@ const ANGULAR_PROD_PATH = path.join(__dirname, '..', 'dist', 'frontend', 'browse
 let SHUTDOWN_URL = 'http://localhost:8080/actuator/shutdown';
 
 let javaProcess = null;
+let backendPort = 8080;
 
 function getFreePort() {
   return new Promise((resolve, reject) => {
@@ -95,6 +96,15 @@ function createSplashWindow() {
 
   splash.webContents.on('devtools-opened', () => {
     splash.webContents.closeDevTools();
+  });
+
+  splash.webContents.on('did-finish-load', () => {
+    const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+    const text = isDev ? "Initializing Development Environment..." : "Initializing...";
+    splash.webContents.executeJavaScript(`
+      const subtitle = document.querySelector('.subtitle');
+      if (subtitle) subtitle.textContent = "${text}";
+    `);
   });
 
   return splash;
@@ -213,18 +223,19 @@ app.whenReady().then(async () => {
 
   if (isDev && !fs.existsSync(javaExePath)) {
     console.log('No bundled Java runtime found. Assuming "Ghost Backend" on port 8080.');
+    backendPort = 8080;
     BACKEND_HEALTH_URL = 'http://localhost:8080/actuator/health';
     SHUTDOWN_URL = 'http://localhost:8080/actuator/shutdown';
   } else {
-    const dynamicPort = await getFreePort();
-    BACKEND_HEALTH_URL = `http://localhost:${dynamicPort}/actuator/health`;
-    SHUTDOWN_URL = `http://localhost:${dynamicPort}/actuator/shutdown`;
+    backendPort = await getFreePort();
+    BACKEND_HEALTH_URL = `http://localhost:${backendPort}/actuator/health`;
+    SHUTDOWN_URL = `http://localhost:${backendPort}/actuator/shutdown`;
 
     const dataDirArg = `--snippetvault.data-dir=${targetDataDir}`;
 
     javaProcess = spawn(javaExePath, [
       '-jar', jarPath,
-      `--server.port=${dynamicPort}`,
+      `--server.port=${backendPort}`,
       dataDirArg
     ]);
 
@@ -243,6 +254,10 @@ app.whenReady().then(async () => {
 
   const splash = createSplashWindow();
   const mainWin = createMainWindow();
+
+  ipcMain.on('get-backend-port', (event) => {
+    event.returnValue = backendPort;
+  });
 
   ipcMain.handle('window:minimize', () => mainWin.minimize());
   ipcMain.handle('window:maximize', () => {

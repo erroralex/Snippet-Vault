@@ -96,8 +96,20 @@ export class SnippetService {
   );
 
   private stompClient!: Client;
-  private readonly apiUrl = 'http://localhost:8080/api/snippets';
-  private readonly wsUrl = 'ws://localhost:8080/ws';
+  private readonly apiUrl = (() => {
+    const electron = (window as any).electronAPI;
+    if (electron && typeof electron.getBackendPort === 'function') {
+      return `http://localhost:${electron.getBackendPort()}/api/snippets`;
+    }
+    return 'http://localhost:8080/api/snippets';
+  })();
+  private readonly wsUrl = (() => {
+    const electron = (window as any).electronAPI;
+    if (electron && typeof electron.getBackendPort === 'function') {
+      return `ws://localhost:${electron.getBackendPort()}/ws`;
+    }
+    return 'ws://localhost:8080/ws';
+  })();
   private justCreated = false;
 
   constructor() {

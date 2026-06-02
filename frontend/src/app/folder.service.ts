@@ -21,7 +21,13 @@ import {Folder} from './models/folder.model';
 @Injectable({providedIn: 'root'})
 export class FolderService {
   private http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:8080/api/folders';
+  private readonly apiUrl = (() => {
+    const electron = (window as any).electronAPI;
+    if (electron && typeof electron.getBackendPort === 'function') {
+      return `http://localhost:${electron.getBackendPort()}/api/folders`;
+    }
+    return 'http://localhost:8080/api/folders';
+  })();
 
   folders = signal<Folder[]>([]);
 
