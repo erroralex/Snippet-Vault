@@ -24,6 +24,28 @@ const { spawn } = require('child_process');
 const net = require('net');
 const fs = require('fs');
 
+let logPath = null;
+function logToFile(message) {
+  if (!logPath) {
+    try {
+      logPath = path.join(app.getPath('userData'), 'app.log');
+      const logDir = path.dirname(logPath);
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+    } catch (e) {
+      console.error('Failed to resolve log path:', e);
+      return;
+    }
+  }
+  const timestamp = new Date().toISOString();
+  try {
+    fs.appendFileSync(logPath, `[${timestamp}] ${message}\n`);
+  } catch (err) {
+    console.error('Failed to write to log file:', err);
+  }
+}
+
 let BACKEND_HEALTH_URL = 'http://localhost:8080/actuator/health';
 const BACKEND_POLL_INTERVAL_MS = 500;
 const BACKEND_TIMEOUT_MS = 30000;
@@ -210,12 +232,20 @@ app.whenReady().then(async () => {
   } else if (process.env.PORTABLE_EXECUTABLE_DIR) {
     targetDataDir = path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'data');
   } else {
-    const exeDir = process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(process.execPath);
-    targetDataDir = path.join(exeDir, 'data');
+    targetDataDir = path.join(app.getPath('userData'), 'data');
   }
+
+  logToFile('──────────────────────────────────────────────');
+  logToFile(`Snippet Vault Main Process Startup`);
+  logToFile(`isDev: ${isDev}`);
+  logToFile(`process.env.PORTABLE_EXECUTABLE_DIR: ${process.env.PORTABLE_EXECUTABLE_DIR}`);
+  logToFile(`process.execPath: ${process.execPath}`);
+  logToFile(`app.getPath('userData'): ${app.getPath('userData')}`);
+  logToFile(`targetDataDir resolved to: ${targetDataDir}`);
 
   if (!fs.existsSync(targetDataDir)) {
     fs.mkdirSync(targetDataDir, { recursive: true });
+    logToFile(`Created target data directory: ${targetDataDir}`);
   }
 
   targetDataDir = targetDataDir.replace(/\\/g, '/');
@@ -228,7 +258,9 @@ app.whenReady().then(async () => {
   let dynamicPort = '8080';
 
   if (isDev && !fs.existsSync(javaExePath)) {
-    console.log('No bundled Java runtime found. Assuming "Ghost Backend" on port 8080.');
+    const msg = 'No bundled Java runtime found. Assuming "Ghost Backend" on port 8080.';
+    console.log(msg);
+    logToFile(msg);
     backendPort = 8080;
     BACKEND_HEALTH_URL = 'http://localhost:8080/actuator/health';
     SHUTDOWN_URL = 'http://localhost:8080/actuator/shutdown';
@@ -239,6 +271,8 @@ app.whenReady().then(async () => {
 
     const dataDirArg = `--snippetvault.data-dir=${targetDataDir}`;
 
+    logToFile(`Spawning Java backend: ${javaExePath} -jar ${jarPath} --server.port=${backendPort} --server.address=127.0.0.1 ${dataDirArg}`);
+
     javaProcess = spawn(javaExePath, [
       '-jar', jarPath,
       `--server.port=${backendPort}`,
@@ -247,15 +281,27 @@ app.whenReady().then(async () => {
     ]);
 
     javaProcess.stdout.on('data', (data) => {
-      console.log(`[Spring Boot]: ${data.toString()}`);
+      const msg = data.toString().trim();
+      console.log(`[Spring Boot]: ${msg}`);
+      logToFile(`[Spring Boot]: ${msg}`);
     });
 
     javaProcess.stderr.on('data', (data) => {
-      console.error(`[Spring Boot Error]: ${data.toString()}`);
+      const msg = data.toString().trim();
+      console.error(`[Spring Boot Error]: ${msg}`);
+      logToFile(`[Spring Boot Error]: ${msg}`);
     });
 
     javaProcess.on('close', (code) => {
-      console.log(`Spring Boot backend process exited with code ${code}`);
+      const msg = `Spring Boot backend process exited with code ${code}`;
+      console.log(msg);
+      logToFile(msg);
+    });
+
+    javaProcess.on('error', (err) => {
+      const msg = `Failed to start Java process: ${err.message}`;
+      console.error(msg);
+      logToFile(msg);
     });
   }
 
@@ -298,6 +344,7 @@ app.whenReady().then(async () => {
 
   try {
     await waitForBackend(BACKEND_TIMEOUT_MS);
+    logToFile('Backend server started successfully and responded to health check.');
 
     await splash.webContents.executeJavaScript(`
       const container = document.querySelector(".splash-container");
@@ -315,6 +362,7 @@ app.whenReady().then(async () => {
 
   } catch (err) {
     console.error("Backend startup error:", err);
+    logToFile(`Backend startup error: ${err.stack || err.message}`);
     // Show a native OS error dialog so the failure is impossible to miss
     dialog.showErrorBox(
       'Snippet Vault — Startup Failed',
@@ -329,7 +377,7 @@ app.whenReady().then(async () => {
       if (statusElement) {
           statusElement.textContent = "Backend failed to start.";
       }
-      const loaderElement = document.querySelector(".loader");
+      const loaderElement = document.querySelector(".loader-bar");
       if (loaderElement) {
           loaderElement.style.display = "none";
       }
