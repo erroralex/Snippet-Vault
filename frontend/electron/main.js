@@ -319,36 +319,40 @@ app.whenReady().then(async () => {
   }
 
   const splash = createSplashWindow();
-  const mainWin = createMainWindow(backendPort);
+  let mainWin = null;
 
   ipcMain.on('get-backend-port', (event) => {
     event.returnValue = backendPort;
   });
 
-  ipcMain.handle('window:minimize', () => mainWin.minimize());
+  ipcMain.handle('window:minimize', () => mainWin && mainWin.minimize());
   ipcMain.handle('window:maximize', () => {
-    mainWin.isMaximized() ? mainWin.unmaximize() : mainWin.maximize();
+    if (mainWin) {
+      mainWin.isMaximized() ? mainWin.unmaximize() : mainWin.maximize();
+    }
   });
   ipcMain.handle('window:close', () => shutdownBackendAndClose(mainWin));
-  ipcMain.handle('window:isMaximized', () => mainWin.isMaximized());
+  ipcMain.handle('window:isMaximized', () => mainWin ? mainWin.isMaximized() : false);
   ipcMain.handle('window:zoomIn', () => {
+    if (!mainWin) return 0;
     const current = mainWin.webContents.getZoomLevel();
     const target = Math.min(current + 0.5, 3.0);
     mainWin.webContents.setZoomLevel(target);
     return target;
   });
   ipcMain.handle('window:zoomOut', () => {
+    if (!mainWin) return 0;
     const current = mainWin.webContents.getZoomLevel();
     const target = Math.max(current - 0.5, -3.0);
     mainWin.webContents.setZoomLevel(target);
     return target;
   });
   ipcMain.handle('window:resetZoom', () => {
-    mainWin.webContents.setZoomLevel(0);
+    if (mainWin) mainWin.webContents.setZoomLevel(0);
     return 0;
   });
   ipcMain.handle('window:getZoom', () => {
-    return mainWin.webContents.getZoomLevel();
+    return mainWin ? mainWin.webContents.getZoomLevel() : 0;
   });
   ipcMain.handle('vault:openFolder', () => {
     const { shell } = require('electron');
@@ -358,6 +362,13 @@ app.whenReady().then(async () => {
   try {
     await waitForBackend(BACKEND_TIMEOUT_MS);
     logToFile('Backend server started successfully and responded to health check.');
+
+    mainWin = createMainWindow(backendPort);
+
+    // Wait for the window's webContents to finish loading or ready-to-show to prevent layout flash
+    await new Promise((resolve) => {
+      mainWin.once('ready-to-show', resolve);
+    });
 
     await splash.webContents.executeJavaScript(`
       const container = document.querySelector(".splash-container");
@@ -399,7 +410,7 @@ app.whenReady().then(async () => {
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      const win = createMainWindow();
+      const win = createMainWindow(backendPort);
       win.maximize();
       win.show();
     }

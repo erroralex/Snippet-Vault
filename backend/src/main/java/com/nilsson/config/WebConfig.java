@@ -24,11 +24,11 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(@NonNull CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("http://localhost:4200", "file://")
+                .allowedOriginPatterns("*")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH");
 
         registry.addMapping("/actuator/**")
-                .allowedOrigins("http://localhost:4200", "file://")
+                .allowedOriginPatterns("*")
                 .allowedMethods("POST");
     }
 }

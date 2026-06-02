@@ -52,7 +52,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/snippets")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:4200")
+@CrossOrigin(origins = "*")
 public class SnippetController {
 
     private final SnippetService snippetService;
