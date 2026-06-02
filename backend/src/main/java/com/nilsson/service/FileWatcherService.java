@@ -103,6 +103,17 @@ public class FileWatcherService {
                         .relativize(absolute).toString()
                         .replace("\\", "/");
 
+                // Skip database files, application logs, and system/hidden files
+                if (relative.equals("snippet-vault.db") ||
+                    relative.equals("app.log") ||
+                    relative.endsWith("-journal") ||
+                    relative.endsWith("-wal") ||
+                    relative.endsWith("-shm") ||
+                    relative.startsWith(".") ||
+                    relative.contains("/.")) {
+                    continue;
+                }
+
                 if (kind == ENTRY_MODIFY) {
                     executor.schedule(
                             () -> handleModify(relative),

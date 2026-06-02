@@ -176,8 +176,12 @@ public class SnippetVaultApplication {
                 try {
                     String relativePath = dataRoot.relativize(path).toString().replace("\\", "/");
 
-                    // Skip database file and hidden/system files
+                    // Skip database files, application logs, and hidden/system files
                     if (relativePath.equals("snippet-vault.db") ||
+                        relativePath.equals("app.log") ||
+                        relativePath.endsWith("-journal") ||
+                        relativePath.endsWith("-wal") ||
+                        relativePath.endsWith("-shm") ||
                         relativePath.startsWith(".") ||
                         relativePath.contains("/.")) {
                         continue;
