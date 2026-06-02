@@ -192,6 +192,12 @@ function createMainWindow(dynamicPort) {
     await shutdownBackendAndClose(win);
   });
 
+  win.webContents.on('console-message', (event, level, message, line, sourceId) => {
+    const levels = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
+    const levelStr = levels[level] || `LEVEL_${level}`;
+    logToFile(`[Renderer Console] [${levelStr}] ${message} (at ${path.basename(sourceId)}:${line})`);
+  });
+
   return win;
 }
 
