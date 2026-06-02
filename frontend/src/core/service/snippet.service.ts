@@ -301,6 +301,8 @@ export class SnippetService {
 
     this.stompClient.onConnect = (frame: IFrame) => {
       console.log('Connected to WebSocket broker: ' + frame);
+      this.loadSnippets();
+      this.folderService.loadFolders();
       this.stompClient.subscribe('/topic/snippets', (message: IMessage) => {
         if (message.body) {
           console.log('Received real-time update:', message.body);
