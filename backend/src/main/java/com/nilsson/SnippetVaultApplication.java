@@ -60,19 +60,28 @@ public class SnippetVaultApplication {
     private final FileWatcherService fileWatcherService;
 
     public static void main(String[] args) {
+        System.out.println("[SnippetVault] Working directory: " + new java.io.File("").getAbsolutePath());
+        System.out.println("[SnippetVault] Args: " + java.util.Arrays.toString(args));
+
         boolean hasDataDirArg = false;
         for (String arg : args) {
             if (arg.startsWith("--snippetvault.data-dir=")) {
                 hasDataDirArg = true;
                 String val = arg.substring(arg.indexOf('=') + 1);
-                System.setProperty("snippetvault.data-dir", val);
-                new java.io.File(val).mkdirs();
+                System.out.println("[SnippetVault] data-dir from arg: " + val);
+                // Normalize and resolve to absolute path
+                java.io.File dataFile = new java.io.File(val);
+                String resolved = dataFile.getAbsolutePath();
+                System.out.println("[SnippetVault] data-dir resolved: " + resolved);
+                System.setProperty("snippetvault.data-dir", resolved);
+                dataFile.mkdirs();
                 break;
             }
         }
 
         if (!hasDataDirArg) {
             java.io.File workingDir = new java.io.File("").getAbsoluteFile();
+            System.out.println("[SnippetVault] No data-dir arg. Working dir: " + workingDir);
             if (workingDir.getName().equals("backend")) {
                 System.setProperty("snippetvault.data-dir", "../data");
                 new java.io.File("../data").mkdirs();
@@ -81,19 +90,30 @@ public class SnippetVaultApplication {
                 new java.io.File("data").mkdirs();
             }
         }
+
+        System.out.println("[SnippetVault] Final snippetvault.data-dir property: " + System.getProperty("snippetvault.data-dir"));
         SpringApplication.run(SnippetVaultApplication.class, args);
     }
 
-    private String buildRelativePath(Snippet snippet) {
-        String folderName = null;
-        String folderId = snippet.getFolderId();
-        if (folderId != null && !folderId.isBlank()) {
-            folderName = folderRepository.findById(folderId)
-                    .map(Folder::getName)
-                    .orElse(null);
+    private String buildFolderPath(String folderId) {
+        if (folderId == null || folderId.isBlank()) {
+            return null;
         }
+        java.util.List<String> segments = new java.util.ArrayList<>();
+        String currentId = folderId;
+        while (currentId != null && !currentId.isBlank()) {
+            Folder f = folderRepository.findById(currentId).orElse(null);
+            if (f == null) break;
+            segments.add(0, FilePathUtils.sanitiseTitle(f.getName()));
+            currentId = f.getParentId();
+        }
+        return segments.isEmpty() ? null : String.join("/", segments);
+    }
+
+    private String buildRelativePath(Snippet snippet) {
+        String folderPath = buildFolderPath(snippet.getFolderId());
         String path = FilePathUtils.relativePathFor(
-                folderName, snippet.getLanguage(), snippet.getTitle());
+                folderPath, snippet.getLanguage(), snippet.getTitle());
         log.debug("Resolved path for '{}': {}", snippet.getTitle(), path);
         return path;
     }

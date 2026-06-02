@@ -39,6 +39,9 @@
         "filter": ["**/*"]
       }
     ],
+    "portable": {
+      "unpackDirName": "SnippetVault"
+    },
     "win": {
       "target": [
         {

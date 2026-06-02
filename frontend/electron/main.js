@@ -230,16 +230,20 @@ app.whenReady().then(async () => {
   if (isDev) {
     targetDataDir = path.join(__dirname, '..', '..', 'data');
   } else if (process.env.PORTABLE_EXECUTABLE_DIR) {
+    // Portable .exe: data folder next to the executable
     targetDataDir = path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'data');
   } else {
-    targetDataDir = path.join(app.getPath('userData'), 'data');
+    // Installed or unknown: place data next to the actual executable
+    targetDataDir = path.join(path.dirname(app.getPath('exe')), 'data');
   }
 
   logToFile('──────────────────────────────────────────────');
   logToFile(`Snippet Vault Main Process Startup`);
   logToFile(`isDev: ${isDev}`);
-  logToFile(`process.env.PORTABLE_EXECUTABLE_DIR: ${process.env.PORTABLE_EXECUTABLE_DIR}`);
+  logToFile(`app.isPackaged: ${app.isPackaged}`);
+  logToFile(`process.env.PORTABLE_EXECUTABLE_DIR: ${process.env.PORTABLE_EXECUTABLE_DIR || '(not set)'}`);
   logToFile(`process.execPath: ${process.execPath}`);
+  logToFile(`app.getPath('exe'): ${app.getPath('exe')}`);
   logToFile(`app.getPath('userData'): ${app.getPath('userData')}`);
   logToFile(`targetDataDir resolved to: ${targetDataDir}`);
 
@@ -272,13 +276,16 @@ app.whenReady().then(async () => {
     const dataDirArg = `--snippetvault.data-dir=${targetDataDir}`;
 
     logToFile(`Spawning Java backend: ${javaExePath} -jar ${jarPath} --server.port=${backendPort} --server.address=127.0.0.1 ${dataDirArg}`);
+    logToFile(`Java process cwd: ${targetDataDir}`);
 
     javaProcess = spawn(javaExePath, [
       '-jar', jarPath,
       `--server.port=${backendPort}`,
       `--server.address=127.0.0.1`,
       dataDirArg
-    ]);
+    ], {
+      cwd: path.resolve(targetDataDir.replace(/\//g, path.sep))
+    });
 
     javaProcess.stdout.on('data', (data) => {
       const msg = data.toString().trim();
