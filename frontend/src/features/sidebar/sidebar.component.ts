@@ -1665,7 +1665,10 @@ export class SidebarComponent {
   }
 
   exportVault(): void {
-    const port = typeof window !== 'undefined' ? ((window as any).electronAPI?.backendPort || '8080') : '8080';
+    const electron = (window as any).electronAPI;
+    const port = (electron && typeof electron.getBackendPort === 'function')
+      ? electron.getBackendPort()
+      : 8080;
     window.location.href = `http://localhost:${port}/api/vault/export`;
   }
 

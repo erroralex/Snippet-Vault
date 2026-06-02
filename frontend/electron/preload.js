@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   resetZoom: () => ipcRenderer.invoke('window:resetZoom'),
   getZoom: () => ipcRenderer.invoke('window:getZoom'),
   openDataFolder: () => ipcRenderer.invoke('vault:openFolder'),
+  getBackendPort: () => ipcRenderer.sendSync('get-backend-port'),
 
   onMaximizeChange: (callback) => {
     ipcRenderer.on('window:maximized', (_event, value) => callback(value));
